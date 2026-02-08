@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
@@ -26,11 +26,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, isUserLoading, router]);
 
   const userDocRef = useMemoFirebase(() => {
-    if (!user || user.isAnonymous) return null;
+    if (!user) return null;
     return doc(db, "users", user.uid);
   }, [db, user]);
 
-  const { data: profile } = useDoc(userDocRef);
+  const { data: profile, isLoading: isLoadingProfile } = useDoc(userDocRef);
+
+  // Robust Initialization: Ensure every logged-in user has a profile with leaderboard fields
+  useEffect(() => {
+    if (user && !isUserLoading && profile === null && !isLoadingProfile) {
+      const userRef = doc(db, "users", user.uid);
+      setDocumentNonBlocking(userRef, {
+        id: user.uid,
+        username: user.isAnonymous 
+          ? `Guest_${user.uid.substring(0, 5)}` 
+          : (user.email?.split("@")[0] || "User"),
+        email: user.email || null,
+        totalPoints: 0,
+        accuracy: 0,
+      }, { merge: true });
+    }
+  }, [user, isUserLoading, profile, isLoadingProfile, db]);
 
   const handleLogout = async () => {
     await signOut(auth);

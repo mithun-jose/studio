@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 export default function Leaderboard() {
   const db = useFirestore();
 
-  // Query to show top performers, including those with 0 points
+  // Query to show top performers, including those with 0 points (everyone initialized correctly)
   const leaderboardQuery = useMemoFirebase(() => {
     return query(
       collection(db, "users"),
@@ -41,7 +40,7 @@ export default function Leaderboard() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-headline font-bold text-primary">Hall of Fame</h1>
-          <p className="text-muted-foreground">Top predictors across the Cricket Oracle community</p>
+          <p className="text-muted-foreground">Top predictors across the entire community (Guests & Pro)</p>
         </div>
         
         <div className="flex gap-4">
@@ -62,7 +61,7 @@ export default function Leaderboard() {
               <MailCheck className="h-5 w-5 text-accent-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Registered Emails</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Verified Pro</span>
               <span className="text-lg font-black text-primary">
                 {registeredEmailsCount}
               </span>
@@ -86,8 +85,8 @@ export default function Leaderboard() {
 
           <Card className="border-primary/5 shadow-xl">
             <CardHeader className="bg-primary/5 border-b border-primary/5">
-              <CardTitle className="text-xl font-bold text-primary">Season Rankings</CardTitle>
-              <CardDescription>Global leaderboard updated in real-time</CardDescription>
+              <CardTitle className="text-xl font-bold text-primary">Global Rankings</CardTitle>
+              <CardDescription>Real-time leaderboard including guest seekers and pro predictors</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
