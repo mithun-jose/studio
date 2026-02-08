@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -26,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, isUserLoading, router]);
 
+  // Force anonymous users to the shared universal-guest ID
   const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
 
   const userDocRef = useMemoFirebase(() => {

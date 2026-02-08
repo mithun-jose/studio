@@ -20,11 +20,13 @@ export default function Dashboard() {
   const db = useFirestore();
   const { user } = useUser();
 
-  // Fetch user's predictions to show "Predicted" status on cards
+  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
+
+  // Fetch user's predictions (or universal guest predictions) to show "Predicted" status on cards
   const predictionsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(collection(db, "users", user.uid, "predictions"));
-  }, [db, user]);
+    if (!db || !effectiveUserId) return null;
+    return query(collection(db, "users", effectiveUserId, "predictions"));
+  }, [db, effectiveUserId]);
 
   const { data: predictions } = useCollection(predictionsQuery);
 
