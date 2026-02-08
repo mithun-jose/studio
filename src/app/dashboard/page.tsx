@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -21,7 +20,11 @@ export default function Dashboard() {
     async function loadData() {
       const data = await fetchSeriesInfo();
       if (data) {
-        setMatches(data.data.matchList);
+        // Sort matches by date (earliest first)
+        const sortedMatches = [...data.data.matchList].sort((a, b) => 
+          new Date(a.dateTimeGMT).getTime() - new Date(b.dateTimeGMT).getTime()
+        );
+        setMatches(sortedMatches);
         setSeriesInfo(data.data.info);
       }
       setLoading(false);
