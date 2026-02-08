@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2 } from "lucide-react";
@@ -9,10 +9,25 @@ import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { format } from "date-fns";
+import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
 
 export default function MyPredictions() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isSeriesLoading, setIsSeriesLoading] = useState(true);
+
+  // Load latest series info to check results
+  useEffect(() => {
+    async function loadSeries() {
+      const data = await fetchSeriesInfo(db);
+      if (data) {
+        setMatches(data.data.matchList);
+      }
+      setIsSeriesLoading(false);
+    }
+    loadSeries();
+  }, [db]);
 
   const predictionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -22,7 +37,30 @@ export default function MyPredictions() {
     );
   }, [db, user]);
 
-  const { data: predictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
+  const { data: rawPredictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
+
+  // Dynamically evaluate predictions based on latest match status
+  const predictions = useMemo(() => {
+    if (!rawPredictions || matches.length === 0) return rawPredictions;
+
+    return rawPredictions.map(pred => {
+      const match = matches.find(m => m.id === pred.matchId);
+      if (!match || !match.matchEnded) return pred;
+
+      // Parse winner from status if not already evaluated in database
+      const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
+      const actualWinner = getWinnerFromStatus(match.status, teamNames);
+
+      if (actualWinner && pred.isCorrect === null) {
+        return {
+          ...pred,
+          isCorrect: pred.predictedWinner === actualWinner,
+          matchStatus: match.status
+        };
+      }
+      return pred;
+    });
+  }, [rawPredictions, matches]);
 
   const stats = useMemo(() => {
     if (!predictions) return { totalPoints: 0, winRate: 0 };
@@ -33,7 +71,7 @@ export default function MyPredictions() {
     return { totalPoints, winRate };
   }, [predictions]);
 
-  if (isUserLoading || isPredictionsLoading) {
+  if (isUserLoading || isPredictionsLoading || isSeriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

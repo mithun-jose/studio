@@ -81,7 +81,6 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
     }
 
     // 3. Update Firestore Cache
-    // We don't await this to keep the UI responsive
     setDoc(cacheRef, {
       id: SERIES_ID,
       name: apiData.data.info.name,
@@ -101,4 +100,25 @@ export async function fetchMatchDetails(db: Firestore, matchId: string): Promise
   const series = await fetchSeriesInfo(db);
   if (!series) return null;
   return series.data.matchList.find(m => m.id === matchId) || null;
+}
+
+/**
+ * Parses the winner from the match status string provided by the API.
+ */
+export function getWinnerFromStatus(status: string, teamNames: string[]): string | null {
+  const s = status.toLowerCase();
+  
+  // If match hasn't produced a winner yet or was abandoned
+  if (!s.includes('won') || s.includes('abandoned') || s.includes('no result')) {
+    return null;
+  }
+  
+  // Check which team name appears in the status string
+  for (const name of teamNames) {
+    if (s.includes(name.toLowerCase())) {
+      return name;
+    }
+  }
+  
+  return null;
 }

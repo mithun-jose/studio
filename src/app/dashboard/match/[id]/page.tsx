@@ -2,13 +2,13 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { fetchMatchDetails, Match } from "@/lib/api";
+import { fetchMatchDetails, Match, getWinnerFromStatus } from "@/lib/api";
 import { generateWinningPercentage, GenerateWinningPercentageOutput } from "@/ai/flows/generate-winning-percentage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, BrainCircuit, Trophy, Target, ShieldCheck, Zap, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, BrainCircuit, Trophy, Target, ShieldCheck, Zap, Info, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function MatchDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -46,8 +46,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       const result = await generateWinningPercentage({
         team1Name: match.teamInfo?.[0]?.name || "Team 1",
         team2Name: match.teamInfo?.[1]?.name || "Team 2",
-        matchConditions: `Playing at ${match.venue}. Weather is clear. Match Type: ${match.matchType}.`,
-        playerStatistics: "Team 1 has higher batting average (28.4), Team 2 has better bowling strike rate (18.2). Recent head-to-head favors Team 1 (3-2).",
+        matchConditions: `Playing at ${match.venue}. Match Type: ${match.matchType}.`,
+        playerStatistics: "Team 1 and Team 2 are evenly matched in recent head-to-head records.",
       });
       setAiForecast(result);
     } catch (error) {
@@ -70,6 +70,11 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
 
     if (!user) {
       toast({ title: "Login required", description: "You must be signed in or a guest to make predictions.", variant: "destructive" });
+      return;
+    }
+
+    if (match?.matchStarted) {
+      toast({ title: "Prediction Closed", description: "This match has already started.", variant: "destructive" });
       return;
     }
 
@@ -106,6 +111,11 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
 
   if (!match) return <div className="text-center py-20 font-bold">Match not found</div>;
 
+  const isEnded = match.matchEnded;
+  const isStarted = match.matchStarted;
+  const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
+  const winner = isEnded ? getWinnerFromStatus(match.status, teamNames) : null;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
@@ -114,13 +124,13 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Matches
           </Link>
         </Button>
-        <Badge variant="outline" className="border-accent text-primary font-bold px-3 py-1 bg-accent/5">
-          Match Odds Available
+        <Badge variant="outline" className={`font-bold px-3 py-1 ${isEnded ? 'border-primary bg-primary/5 text-primary' : 'border-accent bg-accent/5 text-primary'}`}>
+          {isEnded ? 'Match Concluded' : isStarted ? 'Predictions Closed' : 'Predictions Open'}
         </Badge>
       </div>
 
       {/* Hero Header */}
-      <Card className="border-none shadow-xl bg-gradient-to-br from-primary to-primary/90 text-white overflow-hidden relative">
+      <Card className={`border-none shadow-xl text-white overflow-hidden relative ${isEnded ? 'bg-primary' : 'bg-gradient-to-br from-primary to-primary/90'}`}>
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Trophy className="h-32 w-32" />
         </div>
@@ -129,14 +139,23 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             {match.matchType.toUpperCase()} SERIES
           </Badge>
           <div className="flex items-center justify-center gap-4 sm:gap-12 w-full mb-6">
-            <TeamHeader team={match.teamInfo?.[0]} />
+            <TeamHeader team={match.teamInfo?.[0]} isWinner={winner === match.teamInfo?.[0]?.name} />
             <div className="text-4xl font-black italic text-accent/40">VS</div>
-            <TeamHeader team={match.teamInfo?.[1]} />
+            <TeamHeader team={match.teamInfo?.[1]} isWinner={winner === match.teamInfo?.[1]?.name} />
           </div>
           <h1 className="text-2xl font-headline font-bold mb-2">{match.name}</h1>
-          <div className="flex items-center gap-2 text-primary-foreground/70 text-sm bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
-            <Target className="h-4 w-4" />
-            {match.venue}
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2 text-primary-foreground/70 text-sm bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
+              <Target className="h-4 w-4" />
+              {match.venue}
+            </div>
+            {isEnded && (
+              <div className="bg-accent/20 border border-accent/30 p-4 rounded-2xl max-w-md">
+                 <p className="text-accent font-black italic text-lg leading-tight uppercase">
+                    Result: {match.status}
+                 </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -144,32 +163,53 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Prediction Form */}
         <div className="md:col-span-2 space-y-6">
-          <Card className="shadow-lg border-primary/5">
+          <Card className={`shadow-lg border-primary/5 ${isStarted ? 'opacity-75' : ''}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <ShieldCheck className="h-5 w-5 text-accent" />
-                Make Your Prediction
+                {isEnded ? 'Match Result' : isStarted ? 'Prediction Closed' : 'Make Your Prediction'}
               </CardTitle>
-              <CardDescription>Select the team you believe will emerge victorious</CardDescription>
+              <CardDescription>
+                {isEnded ? 'Final winner has been determined' : isStarted ? 'Predictions are no longer accepted for this match' : 'Select the team you believe will emerge victorious'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">
-              <RadioGroup value={prediction} onValueChange={setPrediction} className="space-y-4">
-                {match.teamInfo?.map((team) => (
-                  <div key={team.id} className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all ${prediction === team.name ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/30 hover:bg-muted/50'}`}>
-                    <RadioGroupItem value={team.name} id={team.id} className="h-5 w-5 border-primary text-primary" />
-                    <Label htmlFor={team.id} className="flex-1 font-bold text-lg cursor-pointer flex items-center justify-between">
-                      {team.name}
-                      <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-1 rounded-md">{team.shortname}</span>
-                    </Label>
-                  </div>
-                ))}
+              <RadioGroup value={prediction} onValueChange={setPrediction} disabled={isStarted} className="space-y-4">
+                {match.teamInfo?.map((team) => {
+                  const isWinningTeam = winner === team.name;
+                  return (
+                    <div key={team.id} className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all ${
+                      prediction === team.name ? 'border-primary bg-primary/5' : 
+                      isWinningTeam ? 'border-accent bg-accent/5' : 'border-transparent bg-muted/30 hover:bg-muted/50'
+                    }`}>
+                      <RadioGroupItem value={team.name} id={team.id} className="h-5 w-5 border-primary text-primary" />
+                      <Label htmlFor={team.id} className="flex-1 font-bold text-lg cursor-pointer flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {team.name}
+                          {isWinningTeam && <Trophy className="h-4 w-4 text-accent" />}
+                        </div>
+                        <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-1 rounded-md">{team.shortname}</span>
+                      </Label>
+                    </div>
+                  );
+                })}
               </RadioGroup>
             </CardContent>
-            <CardFooter className="pt-2">
-              <Button onClick={handlePredict} className="w-full h-12 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20">
-                Lock Prediction
-              </Button>
-            </CardFooter>
+            {!isStarted && (
+              <CardFooter className="pt-2">
+                <Button onClick={handlePredict} className="w-full h-12 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20">
+                  Lock Prediction
+                </Button>
+              </CardFooter>
+            )}
+            {isStarted && !isEnded && (
+              <CardFooter className="pt-2">
+                 <div className="w-full flex items-center justify-center gap-2 text-muted-foreground font-medium p-3 bg-muted/20 rounded-xl">
+                    <AlertCircle className="h-5 w-5" />
+                    Predictions locked - match in progress
+                 </div>
+              </CardFooter>
+            )}
           </Card>
 
           <Card className="shadow-lg border-primary/5 bg-accent/5">
@@ -180,7 +220,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             </CardHeader>
             <CardContent>
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
-                <li>Predictions must be submitted before the match toss.</li>
+                <li>Predictions must be submitted before the match starts.</li>
                 <li>Correct winner prediction earns 100 Oracle Points.</li>
                 <li>Points are doubled if your prediction matches the AI Forecast!</li>
               </ul>
@@ -209,7 +249,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                   </div>
                   <Button 
                     onClick={handleAiForecast} 
-                    disabled={isAiLoading}
+                    disabled={isAiLoading || isEnded}
                     className="w-full h-10 rounded-full bg-white text-primary border-primary border hover:bg-primary hover:text-white transition-all font-bold"
                   >
                     {isAiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Run AI Forecast"}
@@ -237,21 +277,23 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                       <span className="text-accent">{aiForecast.team2WinPercentage}%</span>
                     </div>
                   </div>
-                  <Separator />
+                  <div className="h-px w-full bg-primary/10"></div>
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-primary uppercase">Analyst Rationale</p>
                     <p className="text-sm leading-relaxed text-muted-foreground bg-muted/30 p-3 rounded-xl italic">
                       "{aiForecast.rationale}"
                     </p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setAiForecast(null)} 
-                    className="w-full text-[10px] text-muted-foreground hover:bg-transparent hover:text-primary"
-                  >
-                    Reset Analysis
-                  </Button>
+                  {!isStarted && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setAiForecast(null)} 
+                      className="w-full text-[10px] text-muted-foreground hover:bg-transparent hover:text-primary"
+                    >
+                      Reset Analysis
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -262,24 +304,29 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
   );
 }
 
-function TeamHeader({ team }: { team: any }) {
+function TeamHeader({ team, isWinner }: { team: any, isWinner?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="w-20 h-20 bg-white p-3 rounded-3xl shadow-lg border-2 border-primary/20 flex items-center justify-center">
+      <div className={`w-20 h-20 bg-white p-3 rounded-3xl shadow-lg border-2 flex items-center justify-center relative transition-all ${
+        isWinner ? 'border-accent scale-110 shadow-accent/20' : 'border-primary/20'
+      }`}>
         {team?.img ? (
            <Image src={team.img} alt={team.name} width={56} height={56} className="object-contain" />
         ) : (
           <Target className="h-10 w-10 text-primary/20" />
         )}
+        {isWinner && (
+          <div className="absolute -top-3 -right-3 bg-accent p-1.5 rounded-full shadow-lg">
+            <Trophy className="h-5 w-5 text-primary" />
+          </div>
+        )}
       </div>
       <div className="space-y-0.5">
-        <div className="text-xl font-black">{team?.shortname || "T1"}</div>
+        <div className={`text-xl font-black ${isWinner ? 'text-accent' : ''}`}>
+          {team?.shortname || "T1"}
+        </div>
         <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">{team?.name || "Team 1"}</div>
       </div>
     </div>
   );
-}
-
-function Separator() {
-  return <div className="h-px w-full bg-primary/10"></div>;
 }
