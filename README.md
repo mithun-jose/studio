@@ -1,5 +1,7 @@
-# Firebase Studio
+# Cricket Oracle
 
-This is a NextJS starter in Firebase Studio.
+Predict cricket match results and climb the global leaderboard using AI-powered insights.
+
+## Getting Started
 
 To get started, take a look at src/app/page.tsx.

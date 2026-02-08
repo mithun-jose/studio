@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -90,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="bg-primary p-1.5 rounded-lg">
                 <Trophy className="h-6 w-6 text-accent" />
               </div>
-              <span className="font-headline font-bold text-xl tracking-tight text-primary">Oracle</span>
+              <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Oracle</span>
             </Link>
           </SidebarHeader>
           <SidebarContent>
