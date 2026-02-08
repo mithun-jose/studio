@@ -78,20 +78,23 @@ export default function Dashboard() {
             </Card>
           ))
         ) : (
-          matches.map((match) => (
-            <MatchCard 
-              key={match.id} 
-              match={match} 
-              hasPredicted={predictions?.some(p => p.matchId === match.id)} 
-            />
-          ))
+          matches.map((match) => {
+            const userPrediction = predictions?.find(p => p.matchId === match.id);
+            return (
+              <MatchCard 
+                key={match.id} 
+                match={match} 
+                predictedTeam={userPrediction?.predictedWinner} 
+              />
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boolean }) {
+function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: string }) {
   const isLive = match.status.toLowerCase().includes("live") || (match.matchStarted && !match.matchEnded);
   const isEnded = match.matchEnded;
   const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
@@ -130,9 +133,9 @@ function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boole
             >
               {isLive ? "LIVE NOW" : isEnded ? "MATCH ENDED" : "UPCOMING"}
             </Badge>
-            {hasPredicted && (
+            {predictedTeam && (
               <Badge className="bg-green-500/10 text-green-600 border-green-200 gap-1 px-2">
-                <CheckCircle2 className="h-3 w-3" /> Predicted
+                <CheckCircle2 className="h-3 w-3" /> {predictedTeam}
               </Badge>
             )}
           </div>
@@ -147,10 +150,13 @@ function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boole
         <div className="flex items-center justify-between gap-2">
           {match.teamInfo?.map((team, idx) => {
             const isWinner = winner === team.name;
+            const isPredicted = predictedTeam === team.name;
             return (
               <div key={team.id || idx} className="flex flex-col items-center flex-1 text-center relative">
                 <div className={`w-16 h-16 rounded-2xl p-2 flex items-center justify-center mb-2 border transition-all overflow-hidden relative ${
-                  isWinner ? 'bg-accent/10 border-accent shadow-md' : 'bg-muted/30 border-primary/5 group-hover:border-primary/20'
+                  isWinner ? 'bg-accent/10 border-accent shadow-md' : 
+                  isPredicted ? 'bg-primary/5 border-primary/30 shadow-sm' :
+                  'bg-muted/30 border-primary/5 group-hover:border-primary/20'
                 }`}>
                   {team.img ? (
                      <Image src={team.img} alt={team.name} width={48} height={48} className="object-contain" />
@@ -163,7 +169,7 @@ function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boole
                     </div>
                   )}
                 </div>
-                <span className={`text-sm font-bold truncate w-full ${isWinner ? 'text-primary' : ''}`}>
+                <span className={`text-sm font-bold truncate w-full ${isWinner ? 'text-primary' : isPredicted ? 'text-primary/70' : ''}`}>
                   {team.shortname || team.name}
                 </span>
               </div>
@@ -190,7 +196,7 @@ function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boole
       <CardFooter>
         <Button asChild className="w-full rounded-xl h-11 shadow-sm font-bold group-hover:shadow-primary/20 transition-all">
           <Link href={`/dashboard/match/${match.id}`}>
-            {isEnded ? "View Result" : isPredictionsClosed ? "View Progress" : hasPredicted ? "Update Prediction" : "Predict Outcome"} 
+            {isEnded ? "View Result" : isPredictionsClosed ? "View Progress" : predictedTeam ? "Update Prediction" : "Predict Outcome"} 
             <ChevronRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
