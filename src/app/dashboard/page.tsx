@@ -78,6 +78,22 @@ export default function Dashboard() {
 
 function MatchCard({ match }: { match: Match }) {
   const isLive = match.status.toLowerCase().includes("live") || (match.matchStarted && !match.matchEnded);
+  const [localDate, setLocalDate] = useState<string>("Loading time...");
+
+  useEffect(() => {
+    // Ensure the date string is treated as UTC by appending Z if missing 
+    // and replacing space with T for valid ISO parsing
+    const dateStr = match.dateTimeGMT.endsWith('Z') 
+      ? match.dateTimeGMT 
+      : `${match.dateTimeGMT.replace(' ', 'T')}Z`;
+    
+    try {
+      const date = new Date(dateStr);
+      setLocalDate(format(date, "MMM d, h:mm a"));
+    } catch (e) {
+      setLocalDate("Date unavailable");
+    }
+  }, [match.dateTimeGMT]);
   
   return (
     <Card className="group relative overflow-hidden border-primary/5 hover:border-primary/20 transition-all hover:shadow-xl hover:-translate-y-1 bg-white">
@@ -91,7 +107,7 @@ function MatchCard({ match }: { match: Match }) {
         </div>
         <CardTitle className="text-lg leading-tight mb-1 group-hover:text-primary transition-colors">{match.name}</CardTitle>
         <CardDescription className="flex items-center gap-1.5 text-xs">
-          <Calendar className="h-3 w-3" /> {format(new Date(match.dateTimeGMT), "MMM d, h:mm a")}
+          <Calendar className="h-3 w-3" /> {localDate}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
