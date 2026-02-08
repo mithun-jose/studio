@@ -4,7 +4,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2 } from "lucide-react";
+import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -45,26 +45,26 @@ export default function MyPredictions() {
 
     return rawPredictions.map(pred => {
       const match = matches.find(m => m.id === pred.matchId);
-      if (!match || !match.matchEnded) return pred;
+      if (!match) return pred;
 
-      // Parse winner from status if not already evaluated in database
+      // Parse winner from status if match ended
       const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
-      const actualWinner = getWinnerFromStatus(match.status, teamNames);
+      const actualWinner = match.matchEnded ? getWinnerFromStatus(match.status, teamNames) : null;
 
-      if (actualWinner && pred.isCorrect === null) {
-        return {
-          ...pred,
-          isCorrect: pred.predictedWinner === actualWinner,
-          matchStatus: match.status
-        };
-      }
-      return pred;
+      return {
+        ...pred,
+        isCorrect: match.matchEnded ? pred.predictedWinner === actualWinner : null,
+        matchStatus: match.status,
+        matchStarted: match.matchStarted,
+        matchEnded: match.matchEnded,
+        isLive: match.matchStarted && !match.matchEnded
+      };
     });
   }, [rawPredictions, matches]);
 
   const stats = useMemo(() => {
     if (!predictions) return { totalPoints: 0, winRate: 0 };
-    const completed = predictions.filter(p => p.isCorrect !== null);
+    const completed = predictions.filter(p => p.matchEnded);
     const won = completed.filter(p => p.isCorrect === true);
     const totalPoints = predictions.reduce((acc, p) => acc + (p.isCorrect === true ? (p.points || 100) * (p.aiBonus ? 2 : 1) : 0), 0);
     const winRate = completed.length > 0 ? Math.round((won.length / completed.length) * 100) : 0;
@@ -118,7 +118,8 @@ export default function MyPredictions() {
 function PredictionRow({ pred }: { pred: any }) {
   const isWon = pred.isCorrect === true;
   const isLost = pred.isCorrect === false;
-  const isPending = pred.isCorrect === null;
+  const isPending = !pred.matchEnded;
+  const isLive = pred.isLive;
 
   return (
     <Card className="border-primary/5 hover:border-primary/20 transition-all hover:shadow-md bg-white overflow-hidden">
@@ -126,10 +127,12 @@ function PredictionRow({ pred }: { pred: any }) {
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${
             isWon ? 'bg-green-100 text-green-600' : 
+            isLive ? 'bg-red-100 text-red-600' :
             isPending ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'
           }`}>
             {isWon && <CheckCircle2 className="h-6 w-6" />}
-            {isPending && <Clock className="h-6 w-6" />}
+            {isLive && <PlayCircle className="h-6 w-6 animate-pulse" />}
+            {isPending && !isLive && <Clock className="h-6 w-6" />}
             {isLost && <XCircle className="h-6 w-6" />}
           </div>
           <div className="flex flex-col min-w-0">
@@ -152,9 +155,10 @@ function PredictionRow({ pred }: { pred: any }) {
             <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Status</span>
             <span className={`text-sm font-black uppercase italic ${
               isWon ? 'text-green-600' : 
+              isLive ? 'text-red-500' :
               isPending ? 'text-blue-600' : 'text-red-600'
             }`}>
-              {isPending ? "Pending" : isWon ? "Won" : "Lost"}
+              {isLive ? "Live" : isPending ? "Locked" : isWon ? "Won" : "Lost"}
             </span>
           </div>
 

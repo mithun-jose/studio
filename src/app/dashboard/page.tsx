@@ -7,17 +7,27 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, ChevronRight, Zap, Target, History, Trophy } from "lucide-react";
+import { Calendar, MapPin, ChevronRight, Zap, Target, History, Trophy, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query } from "firebase/firestore";
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [seriesInfo, setSeriesInfo] = useState<any>(null);
   const db = useFirestore();
+  const { user } = useUser();
+
+  // Fetch user's predictions to show "Predicted" status on cards
+  const predictionsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, "users", user.uid, "predictions"));
+  }, [db, user]);
+
+  const { data: predictions } = useCollection(predictionsQuery);
 
   useEffect(() => {
     async function loadData() {
@@ -68,7 +78,11 @@ export default function Dashboard() {
           ))
         ) : (
           matches.map((match) => (
-            <MatchCard key={match.id} match={match} />
+            <MatchCard 
+              key={match.id} 
+              match={match} 
+              hasPredicted={predictions?.some(p => p.matchId === match.id)} 
+            />
           ))
         )}
       </div>
@@ -76,7 +90,7 @@ export default function Dashboard() {
   );
 }
 
-function MatchCard({ match }: { match: Match }) {
+function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boolean }) {
   const isLive = match.status.toLowerCase().includes("live") || (match.matchStarted && !match.matchEnded);
   const isEnded = match.matchEnded;
   const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
@@ -102,12 +116,19 @@ function MatchCard({ match }: { match: Match }) {
       <div className={`absolute top-0 left-0 w-1 h-full transition-all ${isLive ? 'bg-red-500' : isEnded ? 'bg-primary' : 'bg-primary/20'}`}></div>
       <CardHeader className="pb-4">
         <div className="flex justify-between items-center mb-2">
-          <Badge 
-            variant={isLive ? "default" : "secondary"} 
-            className={isLive ? "bg-red-500 animate-pulse" : isEnded ? "bg-primary text-white" : "bg-muted text-muted-foreground"}
-          >
-            {isLive ? "LIVE NOW" : isEnded ? "MATCH ENDED" : "UPCOMING"}
-          </Badge>
+          <div className="flex gap-2">
+            <Badge 
+              variant={isLive ? "default" : "secondary"} 
+              className={isLive ? "bg-red-500 animate-pulse" : isEnded ? "bg-primary text-white" : "bg-muted text-muted-foreground"}
+            >
+              {isLive ? "LIVE NOW" : isEnded ? "MATCH ENDED" : "UPCOMING"}
+            </Badge>
+            {hasPredicted && (
+              <Badge className="bg-green-500/10 text-green-600 border-green-200 gap-1 px-2">
+                <CheckCircle2 className="h-3 w-3" /> Predicted
+              </Badge>
+            )}
+          </div>
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{match.matchType}</span>
         </div>
         <CardTitle className="text-lg leading-tight mb-1 group-hover:text-primary transition-colors">{match.name}</CardTitle>
@@ -162,7 +183,7 @@ function MatchCard({ match }: { match: Match }) {
       <CardFooter>
         <Button asChild className="w-full rounded-xl h-11 shadow-sm font-bold group-hover:shadow-primary/20 transition-all">
           <Link href={`/dashboard/match/${match.id}`}>
-            {isEnded ? "View Result" : match.matchStarted ? "View Progress" : "Predict Outcome"} 
+            {isEnded ? "View Result" : match.matchStarted ? "View Progress" : hasPredicted ? "Update Prediction" : "Predict Outcome"} 
             <ChevronRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>

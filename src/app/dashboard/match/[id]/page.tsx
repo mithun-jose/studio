@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, BrainCircuit, Trophy, Target, ShieldCheck, Zap, Info, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, BrainCircuit, Trophy, Target, ShieldCheck, Zap, Info, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
@@ -29,6 +29,20 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
   const [aiForecast, setAiForecast] = useState<GenerateWinningPercentageOutput | null>(null);
   const [prediction, setPrediction] = useState<string>("");
   const { toast } = useToast();
+
+  // Fetch existing prediction if it exists
+  const predictionRef = useMemoFirebase(() => {
+    if (!db || !user || !id) return null;
+    return doc(db, "users", user.uid, "predictions", `${user.uid}_${id}`);
+  }, [db, user, id]);
+
+  const { data: existingPrediction, isLoading: isPredictionLoading } = useDoc(predictionRef);
+
+  useEffect(() => {
+    if (existingPrediction) {
+      setPrediction(existingPrediction.predictedWinner);
+    }
+  }, [existingPrediction]);
 
   useEffect(() => {
     async function load() {
@@ -94,12 +108,12 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
     }, { merge: true });
 
     toast({
-      title: "Prediction Submitted!",
+      title: existingPrediction ? "Prediction Updated!" : "Prediction Submitted!",
       description: `You've locked in ${prediction} as the winner. Good luck!`,
     });
   };
 
-  if (loading) return (
+  if (loading || isPredictionLoading) return (
     <div className="space-y-6">
       <Skeleton className="h-64 w-full rounded-3xl" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -124,9 +138,16 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Matches
           </Link>
         </Button>
-        <Badge variant="outline" className={`font-bold px-3 py-1 ${isEnded ? 'border-primary bg-primary/5 text-primary' : 'border-accent bg-accent/5 text-primary'}`}>
-          {isEnded ? 'Match Concluded' : isStarted ? 'Predictions Closed' : 'Predictions Open'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {existingPrediction && (
+            <Badge className="bg-green-500/10 text-green-600 border-green-200 gap-1 px-3 py-1 font-bold">
+              <CheckCircle2 className="h-3 w-3" /> Predicted
+            </Badge>
+          )}
+          <Badge variant="outline" className={`font-bold px-3 py-1 ${isEnded ? 'border-primary bg-primary/5 text-primary' : 'border-accent bg-accent/5 text-primary'}`}>
+            {isEnded ? 'Match Concluded' : isStarted ? 'Predictions Closed' : 'Predictions Open'}
+          </Badge>
+        </div>
       </div>
 
       {/* Hero Header */}
@@ -167,7 +188,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <ShieldCheck className="h-5 w-5 text-accent" />
-                {isEnded ? 'Match Result' : isStarted ? 'Prediction Closed' : 'Make Your Prediction'}
+                {isEnded ? 'Match Result' : isStarted ? 'Prediction Status' : 'Make Your Prediction'}
               </CardTitle>
               <CardDescription>
                 {isEnded ? 'Final winner has been determined' : isStarted ? 'Predictions are no longer accepted for this match' : 'Select the team you believe will emerge victorious'}
@@ -177,16 +198,18 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
               <RadioGroup value={prediction} onValueChange={setPrediction} disabled={isStarted} className="space-y-4">
                 {match.teamInfo?.map((team, idx) => {
                   const isWinningTeam = winner === team.name;
+                  const isUserPick = existingPrediction?.predictedWinner === team.name;
                   return (
-                    <div key={team.id || idx} className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all ${
+                    <div key={team.id || team.name || idx} className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all ${
                       prediction === team.name ? 'border-primary bg-primary/5' : 
                       isWinningTeam ? 'border-accent bg-accent/5' : 'border-transparent bg-muted/30 hover:bg-muted/50'
                     }`}>
-                      <RadioGroupItem value={team.name} id={team.id} className="h-5 w-5 border-primary text-primary" />
-                      <Label htmlFor={team.id} className="flex-1 font-bold text-lg cursor-pointer flex items-center justify-between">
+                      <RadioGroupItem value={team.name} id={team.id || team.name} className="h-5 w-5 border-primary text-primary" />
+                      <Label htmlFor={team.id || team.name} className="flex-1 font-bold text-lg cursor-pointer flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {team.name}
                           {isWinningTeam && <Trophy className="h-4 w-4 text-accent" />}
+                          {isUserPick && !isStarted && <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Your Pick</Badge>}
                         </div>
                         <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-1 rounded-md">{team.shortname}</span>
                       </Label>
@@ -198,17 +221,27 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             {!isStarted && (
               <CardFooter className="pt-2">
                 <Button onClick={handlePredict} className="w-full h-12 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20">
-                  Lock Prediction
+                  {existingPrediction ? "Update Prediction" : "Lock Prediction"}
                 </Button>
               </CardFooter>
             )}
-            {isStarted && !isEnded && (
-              <CardFooter className="pt-2">
-                 <div className="w-full flex items-center justify-center gap-2 text-muted-foreground font-medium p-3 bg-muted/20 rounded-xl">
-                    <AlertCircle className="h-5 w-5" />
-                    Predictions locked - match in progress
-                 </div>
-              </CardFooter>
+            {isStarted && (
+               <CardFooter className="pt-2 flex flex-col gap-3">
+                 {existingPrediction ? (
+                   <div className="w-full p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground font-bold uppercase">You Predicted</span>
+                        <span className="text-lg font-black text-primary">{existingPrediction.predictedWinner}</span>
+                      </div>
+                      <CheckCircle2 className="h-8 w-8 text-primary/20" />
+                   </div>
+                 ) : (
+                    <div className="w-full flex items-center justify-center gap-2 text-muted-foreground font-medium p-3 bg-muted/20 rounded-xl">
+                      <AlertCircle className="h-5 w-5" />
+                      Predictions locked - no prediction made
+                    </div>
+                 )}
+               </CardFooter>
             )}
           </Card>
 
