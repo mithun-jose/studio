@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, use } from "react";
@@ -29,11 +30,13 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
   const [prediction, setPrediction] = useState<string>("");
   const { toast } = useToast();
 
+  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
+
   // Fetch existing prediction if it exists
   const predictionRef = useMemoFirebase(() => {
-    if (!db || !user || !id) return null;
-    return doc(db, "users", user.uid, "predictions", `${user.uid}_${id}`);
-  }, [db, user, id]);
+    if (!db || !effectiveUserId || !id) return null;
+    return doc(db, "users", effectiveUserId, "predictions", `${effectiveUserId}_${id}`);
+  }, [db, effectiveUserId, id]);
 
   const { data: existingPrediction, isLoading: isPredictionLoading } = useDoc(predictionRef);
 
@@ -90,8 +93,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       return;
     }
 
-    if (!user) {
-      toast({ title: "Login required", description: "You must be signed in or a guest to make predictions.", variant: "destructive" });
+    if (!effectiveUserId) {
+      toast({ title: "Login required", description: "You must be signed in to make predictions.", variant: "destructive" });
       return;
     }
 
@@ -100,12 +103,12 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       return;
     }
 
-    const predictionId = `${user.uid}_${match?.id}`;
-    const predictionRef = doc(db, "users", user.uid, "predictions", predictionId);
+    const predictionId = `${effectiveUserId}_${match?.id}`;
+    const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
     setDocumentNonBlocking(predictionRef, {
       id: predictionId,
-      userId: user.uid,
+      userId: effectiveUserId,
       matchId: match?.id,
       matchName: match?.name,
       predictedWinner: prediction,
@@ -117,7 +120,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
 
     toast({
       title: existingPrediction ? "Prediction Updated!" : "Prediction Submitted!",
-      description: `You've locked in ${prediction} as the winner. Good luck!`,
+      description: `You've locked in ${prediction} for the ${user?.isAnonymous ? 'Universal Guest profile' : 'your profile'}.`,
     });
   };
 
@@ -155,6 +158,13 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
           </Badge>
         </div>
       </div>
+
+      {user?.isAnonymous && (
+        <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-primary shadow-sm">
+          <Info className="h-5 w-5 text-accent shrink-0" />
+          <p>You are contributing to the <span className="font-bold">Universal Guest</span> profile. All guest users see and share these predictions.</p>
+        </div>
+      )}
 
       {/* Hero Header */}
       <Card className={`border-none shadow-xl text-white overflow-hidden relative ${isEnded ? 'bg-primary' : 'bg-gradient-to-br from-primary to-primary/90'}`}>
@@ -215,7 +225,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                         <div className="flex items-center gap-2">
                           {team.name}
                           {isWinningTeam && <Trophy className="h-4 w-4 text-accent" />}
-                          {isUserPick && !isPredictionsClosed && <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Your Pick</Badge>}
+                          {isUserPick && !isPredictionsClosed && <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">{user?.isAnonymous ? 'Shared Guest Pick' : 'Your Pick'}</Badge>}
                         </div>
                         <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-1 rounded-md">{team.shortname}</span>
                       </Label>
@@ -236,7 +246,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                  {existingPrediction ? (
                    <div className="w-full p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
                       <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-bold uppercase">You Predicted</span>
+                        <span className="text-xs text-muted-foreground font-bold uppercase">{user?.isAnonymous ? 'Universal Guest Predicted' : 'You Predicted'}</span>
                         <span className="text-lg font-black text-primary">{existingPrediction.predictedWinner}</span>
                       </div>
                       <CheckCircle2 className="h-8 w-8 text-primary/20" />

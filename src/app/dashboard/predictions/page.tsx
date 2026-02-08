@@ -4,7 +4,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle } from "lucide-react";
+import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
@@ -17,6 +17,8 @@ export default function MyPredictions() {
   const db = useFirestore();
   const [matches, setMatches] = useState<Match[]>([]);
   const [isSeriesLoading, setIsSeriesLoading] = useState(true);
+
+  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
 
   // Load latest series info to check results
   useEffect(() => {
@@ -31,20 +33,20 @@ export default function MyPredictions() {
   }, [db]);
 
   const predictionsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !effectiveUserId) return null;
     return query(
-      collection(db, "users", user.uid, "predictions"),
+      collection(db, "users", effectiveUserId, "predictions"),
       orderBy("predictionTime", "desc")
     );
-  }, [db, user]);
+  }, [db, effectiveUserId]);
 
   const { data: rawPredictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
 
   // User profile ref for syncing points
   const userDocRef = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return doc(db, "users", user.uid);
-  }, [db, user]);
+    if (!db || !effectiveUserId) return null;
+    return doc(db, "users", effectiveUserId);
+  }, [db, effectiveUserId]);
 
   const { data: profile } = useDoc(userDocRef);
 
@@ -107,21 +109,34 @@ export default function MyPredictions() {
     <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold text-primary">Prediction History</h1>
-          <p className="text-muted-foreground">Track your progress and accuracy across the season</p>
+          <h1 className="text-3xl font-headline font-bold text-primary">
+            {user?.isAnonymous ? "Shared Guest History" : "Your Prediction History"}
+          </h1>
+          <p className="text-muted-foreground">
+            {user?.isAnonymous 
+              ? "Collective predictions and stats for the Universal Guest profile." 
+              : "Track your progress and accuracy across the season."}
+          </p>
         </div>
         <Card className="bg-primary text-white border-none shadow-lg px-6 py-4 flex items-center justify-between sm:justify-start gap-4 sm:gap-6 w-full md:w-auto">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Total Points</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Points</span>
             <span className="text-xl sm:text-2xl font-black">{stats.totalPoints.toLocaleString()}</span>
           </div>
           <div className="h-10 w-px bg-white/20 hidden sm:block"></div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Win Rate</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Accuracy</span>
             <span className="text-xl sm:text-2xl font-black">{stats.winRate}%</span>
           </div>
         </Card>
       </div>
+
+      {user?.isAnonymous && (
+        <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-primary shadow-sm">
+          <Info className="h-5 w-5 text-accent shrink-0" />
+          <p>These predictions are shared across all guest users. Your actions here affect the <span className="font-bold">Universal Guest</span> leaderboard position.</p>
+        </div>
+      )}
 
       <div className="grid gap-4">
         {!predictions || predictions.length === 0 ? (

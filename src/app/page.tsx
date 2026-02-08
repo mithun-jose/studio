@@ -116,23 +116,25 @@ export default function LandingPage() {
   const handleGuestSignIn = async () => {
     setIsGuestLoading(true);
     try {
-      const result = await signInAnonymously(auth);
+      // Still sign in anonymously to satisfy Firebase rules for a valid UID session
+      await signInAnonymously(auth);
       
-      // Initialize anonymous user profile with mandatory leaderboard fields
-      const userRef = doc(db, "users", result.user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        setDocumentNonBlocking(userRef, {
-          id: result.user.uid,
-          username: `Guest_${result.user.uid.substring(0, 5)}`,
+      // Initialize the shared 'universal-guest' profile if it doesn't exist
+      const universalGuestRef = doc(db, "users", "universal-guest");
+      const guestSnap = await getDoc(universalGuestRef);
+      if (!guestSnap.exists()) {
+        setDocumentNonBlocking(universalGuestRef, {
+          id: "universal-guest",
+          username: "The Universal Guest",
           totalPoints: 0,
           accuracy: 0,
+          isSharedGuest: true,
         }, { merge: true });
       }
 
       toast({
-        title: "Welcome, Guest!",
-        description: "You're exploring as an anonymous user.",
+        title: "Welcome to the Oracle!",
+        description: "You're now predicting as part of the Universal Guest community.",
       });
     } catch (error: any) {
       toast({
@@ -199,7 +201,7 @@ export default function LandingPage() {
                     <span className="text-primary">Conquer the League.</span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-2xl leading-relaxed">
-                    Elevate your cricket experience. Use passwordless, secure email login or enter as a guest to climb the leaderboard.
+                    Elevate your cricket experience. Use passwordless, secure email login or join the shared guest community to climb the leaderboard.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -274,7 +276,7 @@ export default function LandingPage() {
                           ) : (
                             <UserCircle className="mr-2 h-5 w-5" />
                           )}
-                          Continue as Guest
+                          Continue as Universal Guest
                         </Button>
                       </div>
                     ) : (

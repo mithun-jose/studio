@@ -19,20 +19,25 @@ service cloud.firestore {
       return resource != null && isOwner(userId);
     }
 
+    // Special case for the shared guest account
+    function isUniversalGuest(userId) {
+      return userId == 'universal-guest' && isSignedIn();
+    }
+
     match /users/{userId} {
       // Allow public read access for the leaderboard and profile viewing
       allow read: if true;
       
-      // Only the user can manage their own profile
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      // Only the user can manage their own profile, OR any signed-in user can manage the universal guest
+      allow create: if isOwner(userId) || isUniversalGuest(userId);
+      allow update: if isExistingOwner(userId) || isUniversalGuest(userId);
       allow delete: if isExistingOwner(userId);
 
       match /predictions/{predictionId} {
-        // Only the owner can see and manage their own predictions
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        // Only the owner can see and manage their own predictions, or guests see shared predictions
+        allow get, list: if isOwner(userId) || isUniversalGuest(userId);
+        allow create: if (isOwner(userId) && request.resource.data.userId == userId) || isUniversalGuest(userId);
+        allow update: if isExistingOwner(userId) || isUniversalGuest(userId);
         allow delete: if isExistingOwner(userId);
       }
     }
@@ -40,7 +45,7 @@ service cloud.firestore {
     match /cricketSeries/{seriesId} {
       // Series data is public
       allow get, list: if true;
-      // Only signed-in users can trigger cache updates (though typically handled by server-side logic in production)
+      // Only signed-in users can trigger cache updates
       allow write: if isSignedIn();
 
       match /matches/{matchId} {

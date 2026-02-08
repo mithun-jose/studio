@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -25,28 +26,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, isUserLoading, router]);
 
+  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
+
   const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(db, "users", user.uid);
-  }, [db, user]);
+    if (!effectiveUserId) return null;
+    return doc(db, "users", effectiveUserId);
+  }, [db, effectiveUserId]);
 
   const { data: profile, isLoading: isLoadingProfile } = useDoc(userDocRef);
 
-  // Robust Initialization: Ensure every logged-in user has a profile with leaderboard fields
+  // Initialization: Ensure every logged-in user or the shared guest has a profile
   useEffect(() => {
-    if (user && !isUserLoading && profile === null && !isLoadingProfile) {
-      const userRef = doc(db, "users", user.uid);
+    if (user && !isUserLoading && profile === null && !isLoadingProfile && effectiveUserId) {
+      const userRef = doc(db, "users", effectiveUserId);
       setDocumentNonBlocking(userRef, {
-        id: user.uid,
+        id: effectiveUserId,
         username: user.isAnonymous 
-          ? `Guest_${user.uid.substring(0, 5)}` 
+          ? `The Universal Guest` 
           : (user.email?.split("@")[0] || "User"),
         email: user.email || null,
         totalPoints: 0,
         accuracy: 0,
+        isSharedGuest: user.isAnonymous,
       }, { merge: true });
     }
-  }, [user, isUserLoading, profile, isLoadingProfile, db]);
+  }, [user, isUserLoading, profile, isLoadingProfile, db, effectiveUserId]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -70,8 +74,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const displayName = profile?.username || user?.email?.split("@")[0] || (user?.isAnonymous ? "Guest User" : "User");
-  const displayBadge = user?.isAnonymous ? "Guest Mode" : "Pro Predictor";
+  const displayName = profile?.username || user?.email?.split("@")[0] || (user?.isAnonymous ? "The Universal Guest" : "User");
+  const displayBadge = user?.isAnonymous ? "Shared Guest Mode" : "Pro Predictor";
 
   return (
     <SidebarProvider>
@@ -114,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="bg-primary/5 rounded-2xl p-4 flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 border-2 border-primary/10">
-                  {!user?.isAnonymous && <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100/100`} />}
+                  <AvatarImage src={`https://picsum.photos/seed/${effectiveUserId}/100/100`} />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {user?.isAnonymous ? <UserCircle className="h-6 w-6" /> : (displayName?.[0] || "U")}
                   </AvatarFallback>
