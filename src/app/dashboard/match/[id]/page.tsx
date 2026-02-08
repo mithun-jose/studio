@@ -175,10 +175,10 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             </CardHeader>
             <CardContent className="pt-2">
               <RadioGroup value={prediction} onValueChange={setPrediction} disabled={isStarted} className="space-y-4">
-                {match.teamInfo?.map((team) => {
+                {match.teamInfo?.map((team, idx) => {
                   const isWinningTeam = winner === team.name;
                   return (
-                    <div key={team.id} className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all ${
+                    <div key={team.id || idx} className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all ${
                       prediction === team.name ? 'border-primary bg-primary/5' : 
                       isWinningTeam ? 'border-accent bg-accent/5' : 'border-transparent bg-muted/30 hover:bg-muted/50'
                     }`}>
