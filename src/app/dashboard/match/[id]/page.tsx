@@ -103,6 +103,15 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       return;
     }
 
+    // Determine if prediction matches AI's top pick for the bonus
+    let hasAiMatch = false;
+    if (aiForecast && match?.teamInfo) {
+      const aiPick = aiForecast.team1WinPercentage > aiForecast.team2WinPercentage 
+        ? match.teamInfo[0].name 
+        : match.teamInfo[1].name;
+      hasAiMatch = prediction === aiPick;
+    }
+
     const predictionId = `${effectiveUserId}_${match?.id}`;
     const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
@@ -115,12 +124,12 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       predictionTime: new Date().toISOString(),
       isCorrect: null, // Pending evaluation
       points: 100,
-      aiBonus: !!aiForecast,
+      aiBonus: hasAiMatch,
     }, { merge: true });
 
     toast({
       title: existingPrediction ? "Prediction Updated!" : "Prediction Submitted!",
-      description: `You've locked in ${prediction} for the ${user?.isAnonymous ? 'Universal Guest profile' : 'your profile'}.`,
+      description: `You've locked in ${prediction} for the ${user?.isAnonymous ? 'Universal Guest profile' : 'your profile'}. ${hasAiMatch ? 'AI Bonus Active!' : ''}`,
     });
   };
 

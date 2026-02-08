@@ -145,6 +145,14 @@
         "isCorrect": {
           "type": "boolean",
           "description": "Indicates if the prediction was correct."
+        },
+        "points": {
+          "type": "number",
+          "description": "Base points awarded for the prediction (default 100)."
+        },
+        "aiBonus": {
+          "type": "boolean",
+          "description": "Indicates if the user matched the AI forecast for double points."
         }
       },
       "required": [
