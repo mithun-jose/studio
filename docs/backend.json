@@ -50,13 +50,21 @@
           "type": "string",
           "description": "End date of the cricket series.",
           "format": "date-time"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "The last time this data was refreshed from the external API.",
+          "format": "date-time"
+        },
+        "rawResponse": {
+          "type": "object",
+          "description": "The full JSON response from the CricAPI."
         }
       },
       "required": [
         "id",
         "name",
-        "startDate",
-        "endDate"
+        "lastUpdated"
       ]
     },
     "Match": {
@@ -167,7 +175,7 @@
           "schema": {
             "$ref": "#/backend/entities/CricketSeries"
           },
-          "description": "Stores cricket series data fetched from the Cricapi API. No ownership; accessible to all users.",
+          "description": "Stores cricket series data fetched from the Cricapi API. Cached daily by clients.",
           "params": [
             {
               "name": "seriesId",
@@ -217,6 +225,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the Cricket Oracle application's features, focusing on user authentication, prediction storage, leaderboard functionality, and integration with the Cricapi API. The design emphasizes security, scalability, and maintainability, adhering to the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. User authentication is handled through Firebase Authentication (password and anonymous). The database structure organizes data related to users, cricket series, matches, and predictions, enabling efficient querying and secure data access.\n\nAuthorization Independence is achieved by denormalizing the `userId` into the `Prediction` documents, avoiding the need for `get()` calls in security rules to verify user ownership. The structure uses path-based ownership for user-specific data (predictions under `/users/{userId}/predictions/{predictionId}`), making security rules straightforward and efficient. Segregation of data is maintained by storing different entities in separate collections, ensuring a homogeneous security posture within each collection. The structure enables secure list operations (QAPs) by directly associating predictions with users via the path and leveraging the user ID in the security rules. This design promotes clear authorization intent, simplifies debugging, and supports the application's core features in a secure and scalable manner."
+    "reasoning": "The Firestore data structure is updated to support daily client-side caching of API responses. This reduces API costs and improves performance while maintaining simple security rules."
   }
 }

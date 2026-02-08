@@ -1,71 +1,30 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
      * CRICKET ORACLE SECURITY RULES
-     * 
-     * Core Philosophy:
-     * This ruleset enforces a strict user-ownership model for personal data (profiles and predictions) 
-     * while maintaining a public-read model for game data (series and matches). Authorization is 
-     * primarily path-based, ensuring that users can only access data nested under their own unique ID.
-     * 
-     * Data Structure:
-     * - /users/{userId}: Private user profiles.
-     * - /users/{userId}/predictions/{predictionId}: User-specific game predictions.
-     * - /cricketSeries/{seriesId}: Publicly readable cricket series information.
-     * - /cricketSeries/{seriesId}/matches/{matchId}: Publicly readable match data nested within series.
-     * 
-     * Key Security Decisions:
-     * 1. Path-Based Ownership: Users are strictly confined to their own /users/{userId} tree for all writes.
-     * 2. Read-Only Game Data: The cricket series and match collections are publicly listable and readable 
-     *    to facilitate UI display, but are write-protected as they are intended to be managed by 
-     *    automated backend processes or admins.
-     * 3. Denormalization for Integrity: Relational fields like 'userId' in predictions are validated 
-     *    against the path to ensure data consistency without needing cross-document lookups.
-     * 4. Prototyping Flexibility: Schema validation is limited to relational integrity and ownership 
-     *    fields; general content fields are not type-checked to allow for rapid iteration.
      */
 
-    // --- Helper Functions ---
-
-    /** Checks if the request is made by an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the authenticated user's UID matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** Checks if the document exists and the authenticated user is the owner. */
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for the User profile document. Allows users to manage their own profile.
-     * @path /users/{userId}
-     * @allow (create) Authenticated user where {userId} matches their UID.
-     * @deny (read/write) Any user trying to access a different user's profile document.
-     * @principle Ownership and Self-Creation.
-     */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
 
-      /**
-       * @description Rules for user-specific match predictions.
-       * @path /users/{userId}/predictions/{predictionId}
-       * @allow (list) Owner of the parent user document.
-       * @deny (create) User trying to create a prediction under a different user's path.
-       * @principle Ownership and Relational Integrity.
-       */
       match /predictions/{predictionId} {
         allow get, list: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
@@ -74,27 +33,15 @@ service cloud.firestore {
       }
     }
 
-    /**
-     * @description Rules for global cricket series data. Read-only for all users.
-     * @path /cricketSeries/{seriesId}
-     * @allow (get, list) All users, including anonymous.
-     * @deny (write) All client-side write attempts.
-     * @principle Public Read with Restricted Writes.
-     */
     match /cricketSeries/{seriesId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // Managed by backend process.
+      // Allow signed-in users to update the cache. 
+      // In a production app, this would be restricted to a service account or admin.
+      allow write: if isSignedIn();
 
-      /**
-       * @description Rules for matches within a cricket series. Read-only for all users.
-       * @path /cricketSeries/{seriesId}/matches/{matchId}
-       * @allow (get, list) All users.
-       * @deny (write) Any client-side write attempt.
-       * @principle Public Read with Restricted Writes.
-       */
       match /matches/{matchId} {
         allow get, list: if true;
-        allow create, update, delete: if false; // Managed by backend process.
+        allow write: if false; 
       }
     }
   }

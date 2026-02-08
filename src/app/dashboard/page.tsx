@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,15 +11,17 @@ import { Calendar, MapPin, ChevronRight, Zap, Target, History } from "lucide-rea
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useFirestore } from "@/firebase";
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [seriesInfo, setSeriesInfo] = useState<any>(null);
+  const db = useFirestore();
 
   useEffect(() => {
     async function loadData() {
-      const data = await fetchSeriesInfo();
+      const data = await fetchSeriesInfo(db);
       if (data) {
         // Sort matches by date (earliest first)
         const sortedMatches = [...data.data.matchList].sort((a, b) => 
@@ -30,7 +33,7 @@ export default function Dashboard() {
       setLoading(false);
     }
     loadData();
-  }, []);
+  }, [db]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">

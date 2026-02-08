@@ -15,9 +15,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { useFirestore } from "@/firebase";
 
 export default function MatchDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const db = useFirestore();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -27,12 +29,12 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
 
   useEffect(() => {
     async function load() {
-      const data = await fetchMatchDetails(id);
+      const data = await fetchMatchDetails(db, id);
       setMatch(data);
       setLoading(false);
     }
     load();
-  }, [id]);
+  }, [db, id]);
 
   const handleAiForecast = async () => {
     if (!match) return;
