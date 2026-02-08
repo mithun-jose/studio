@@ -52,6 +52,7 @@ export default function LandingPage() {
             const userRef = doc(db, "users", result.user.uid);
             const userSnap = await getDoc(userRef);
             
+            // Always ensure the profile has the required leaderboard fields
             if (!userSnap.exists()) {
               setDocumentNonBlocking(userRef, {
                 id: result.user.uid,
@@ -117,7 +118,7 @@ export default function LandingPage() {
     try {
       const result = await signInAnonymously(auth);
       
-      // Initialize anonymous user profile
+      // Initialize anonymous user profile with mandatory leaderboard fields
       const userRef = doc(db, "users", result.user.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {

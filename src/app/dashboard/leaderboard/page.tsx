@@ -4,18 +4,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2 } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 
 export default function Leaderboard() {
   const db = useFirestore();
 
+  // Query to show top performers, but including those with 0 points
   const leaderboardQuery = useMemoFirebase(() => {
     return query(
       collection(db, "users"),
       orderBy("totalPoints", "desc"),
-      limit(10)
+      limit(25)
     );
   }, [db]);
 
@@ -41,8 +42,8 @@ export default function Leaderboard() {
 
       {rankings.length === 0 ? (
         <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed border-primary/10">
-          <Trophy className="h-12 w-12 text-primary/20 mx-auto mb-4" />
-          <p className="text-muted-foreground font-medium">The season is just beginning. Make your first prediction to start your journey!</p>
+          <Users className="h-12 w-12 text-primary/20 mx-auto mb-4" />
+          <p className="text-muted-foreground font-medium">No predictors found. Sign in to be the first on the board!</p>
         </div>
       ) : (
         <>
@@ -50,6 +51,7 @@ export default function Leaderboard() {
             {rankings.slice(0, 3).map((user, idx) => (
               <TopPerformerCard key={user.id} user={user} rank={idx + 1} />
             ))}
+            {/* If there are fewer than 3 users, show placeholders or just the available ones */}
           </div>
 
           <Card className="border-primary/5 shadow-xl">
@@ -80,16 +82,16 @@ export default function Leaderboard() {
                               <AvatarImage src={`https://picsum.photos/seed/${user.id}/64/64`} />
                               <AvatarFallback>{user.username?.[0] || 'U'}</AvatarFallback>
                             </Avatar>
-                            <span className="font-bold text-sm">{user.username}</span>
+                            <span className="font-bold text-sm">{user.username || 'Anonymous Fan'}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant="outline" className="border-primary/20 text-[10px] font-bold">
-                            {user.accuracy || 0}% Acc
+                            {user.accuracy ?? 0}% Acc
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <span className="font-bold text-primary">{(user.totalPoints || 0).toLocaleString()}</span>
+                          <span className="font-bold text-primary">{(user.totalPoints ?? 0).toLocaleString()}</span>
                         </td>
                       </tr>
                     ))}
@@ -121,16 +123,16 @@ function TopPerformerCard({ user, rank }: { user: any, rank: number }) {
             {rank}
           </div>
         </div>
-        <h3 className="text-xl font-headline font-bold text-primary mb-1">{user.username}</h3>
+        <h3 className="text-xl font-headline font-bold text-primary mb-1 truncate max-w-full px-2">{user.username || 'Anonymous Fan'}</h3>
         <p className="text-xs font-medium text-muted-foreground mb-4">ORACLE ELITE</p>
         <div className="grid grid-cols-2 gap-4 w-full bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-primary/5">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Points</span>
-            <span className="text-lg font-black text-primary">{(user.totalPoints || 0).toLocaleString()}</span>
+            <span className="text-lg font-black text-primary">{(user.totalPoints ?? 0).toLocaleString()}</span>
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Accuracy</span>
-            <span className="text-lg font-black text-accent-foreground">{user.accuracy || 0}%</span>
+            <span className="text-lg font-black text-accent-foreground">{user.accuracy ?? 0}%</span>
           </div>
         </div>
       </CardContent>
