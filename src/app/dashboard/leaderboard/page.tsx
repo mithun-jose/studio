@@ -4,19 +4,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 
 export default function Leaderboard() {
   const db = useFirestore();
 
-  // Query to show top performers, but including those with 0 points
+  // Query to show top performers, including those with 0 points
   const leaderboardQuery = useMemoFirebase(() => {
     return query(
       collection(db, "users"),
       orderBy("totalPoints", "desc"),
-      limit(25)
+      limit(50)
     );
   }, [db]);
 
@@ -32,12 +32,27 @@ export default function Leaderboard() {
 
   // Fallback to empty array if no users found yet
   const rankings = users || [];
+  const totalPredictors = rankings.length;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-headline font-bold text-primary">Hall of Fame</h1>
-        <p className="text-muted-foreground">Top predictors across the Cricket Oracle community</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-headline font-bold text-primary">Hall of Fame</h1>
+          <p className="text-muted-foreground">Top predictors across the Cricket Oracle community</p>
+        </div>
+        
+        <Card className="bg-white border-primary/10 shadow-sm px-4 py-2 flex items-center gap-3">
+          <div className="bg-primary/10 p-2 rounded-full">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Predictors</span>
+            <span className="text-lg font-black text-primary">
+              {totalPredictors}{totalPredictors >= 50 ? '+' : ''}
+            </span>
+          </div>
+        </Card>
       </div>
 
       {rankings.length === 0 ? (
@@ -51,7 +66,6 @@ export default function Leaderboard() {
             {rankings.slice(0, 3).map((user, idx) => (
               <TopPerformerCard key={user.id} user={user} rank={idx + 1} />
             ))}
-            {/* If there are fewer than 3 users, show placeholders or just the available ones */}
           </div>
 
           <Card className="border-primary/5 shadow-xl">
