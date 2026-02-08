@@ -15,11 +15,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function MatchDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const db = useFirestore();
+  const { user } = useUser();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -64,6 +67,27 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       toast({ title: "Please select a team", variant: "destructive" });
       return;
     }
+
+    if (!user) {
+      toast({ title: "Login required", description: "You must be signed in or a guest to make predictions.", variant: "destructive" });
+      return;
+    }
+
+    const predictionId = `${user.uid}_${match?.id}`;
+    const predictionRef = doc(db, "users", user.uid, "predictions", predictionId);
+
+    setDocumentNonBlocking(predictionRef, {
+      id: predictionId,
+      userId: user.uid,
+      matchId: match?.id,
+      matchName: match?.name,
+      predictedWinner: prediction,
+      predictionTime: new Date().toISOString(),
+      isCorrect: null, // Pending evaluation
+      points: 100,
+      aiBonus: !!aiForecast,
+    }, { merge: true });
+
     toast({
       title: "Prediction Submitted!",
       description: `You've locked in ${prediction} as the winner. Good luck!`,
