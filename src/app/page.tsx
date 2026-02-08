@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2 } from "lucide-react";
+import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +13,8 @@ import { useAuth, useUser, useFirestore } from "@/firebase";
 import { 
   sendSignInLinkToEmail, 
   isSignInWithEmailLink, 
-  signInWithEmailLink 
+  signInWithEmailLink,
+  signInAnonymously
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -28,6 +28,7 @@ export default function LandingPage() {
   const { user, isUserLoading } = useUser();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [linkSent, setLinkSent] = useState(false);
   const [finishingSignIn, setFinishingSignIn] = useState(false);
@@ -38,7 +39,6 @@ export default function LandingPage() {
       let emailForSignIn = window.localStorage.getItem('emailForSignIn');
       
       if (!emailForSignIn) {
-        // Fallback for cases where session storage is cleared
         emailForSignIn = window.prompt('Please provide your email for confirmation');
       }
 
@@ -48,7 +48,6 @@ export default function LandingPage() {
           .then(async (result) => {
             window.localStorage.removeItem('emailForSignIn');
             
-            // Check if user has a profile, if not create one
             const userRef = doc(db, "users", result.user.uid);
             const userSnap = await getDoc(userRef);
             
@@ -87,7 +86,7 @@ export default function LandingPage() {
     setIsLoading(true);
     
     const actionCodeSettings = {
-      url: window.location.origin, // Redirect back to this landing page
+      url: window.location.origin,
       handleCodeInApp: true,
     };
 
@@ -107,6 +106,25 @@ export default function LandingPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    setIsGuestLoading(true);
+    try {
+      await signInAnonymously(auth);
+      toast({
+        title: "Welcome, Guest!",
+        description: "You're exploring as an anonymous user.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Guest Entry Failed",
+        description: error.message || "Could not sign in anonymously.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -164,7 +182,7 @@ export default function LandingPage() {
                     <span className="text-primary">Conquer the League.</span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-2xl leading-relaxed">
-                    Elevate your cricket experience. Use passwordless, secure email login to climb the leaderboard and prove your sporting wisdom.
+                    Elevate your cricket experience. Use passwordless, secure email login or enter as a guest to climb the leaderboard.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -181,42 +199,67 @@ export default function LandingPage() {
                 <Card className="shadow-2xl border-primary/10 overflow-hidden bg-white/80 backdrop-blur-sm">
                   <CardHeader className="text-center pt-8">
                     <CardTitle className="text-2xl font-headline font-bold">
-                      {linkSent ? "Check Your Inbox" : "Secure Login"}
+                      {linkSent ? "Check Your Inbox" : "Join the Oracle"}
                     </CardTitle>
                     <CardDescription>
                       {linkSent 
                         ? "We've sent a magic login link to your email." 
-                        : "No password needed. We'll email you a secure link."}
+                        : "Sign in with a secure link or explore as a guest."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 pb-8">
                     {!linkSent ? (
-                      <form onSubmit={handleSendLink} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input 
-                            id="email" 
-                            type="email" 
-                            placeholder="your@email.com" 
-                            required 
-                            className="h-12 border-primary/20"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={isLoading}
-                          />
+                      <div className="space-y-4">
+                        <form onSubmit={handleSendLink} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email Address</Label>
+                            <Input 
+                              id="email" 
+                              type="email" 
+                              placeholder="your@email.com" 
+                              required 
+                              className="h-12 border-primary/20"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              disabled={isLoading || isGuestLoading}
+                            />
+                          </div>
+                          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading || isGuestLoading}>
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="mr-2 h-4 w-4" /> Get Login Link
+                              </>
+                            )}
+                          </Button>
+                        </form>
+                        
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground font-semibold">Or</span>
+                          </div>
                         </div>
-                        <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Link...
-                            </>
+
+                        <Button 
+                          variant="outline" 
+                          className="w-full h-12 border-primary/20 hover:bg-primary/5 font-bold" 
+                          onClick={handleGuestSignIn}
+                          disabled={isLoading || isGuestLoading}
+                        >
+                          {isGuestLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
-                            <>
-                              <Mail className="mr-2 h-4 w-4" /> Get Login Link
-                            </>
+                            <UserCircle className="mr-2 h-5 w-5" />
                           )}
+                          Continue as Guest
                         </Button>
-                      </form>
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center text-center py-6 space-y-4">
                         <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
@@ -238,7 +281,7 @@ export default function LandingPage() {
                         <span className="w-full border-t" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Secure Passwordless Auth</span>
+                        <span className="bg-background px-2 text-muted-foreground">Secure Auth</span>
                       </div>
                     </div>
                   </CardContent>

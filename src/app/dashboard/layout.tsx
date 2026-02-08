@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell } from "lucide-react";
+import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
@@ -27,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, isUserLoading, router]);
 
   const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || user.isAnonymous) return null;
     return doc(db, "users", user.uid);
   }, [db, user]);
 
@@ -54,6 +53,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
+
+  const displayName = profile?.username || user?.email?.split("@")[0] || (user?.isAnonymous ? "Guest User" : "User");
+  const displayBadge = user?.isAnonymous ? "Guest Mode" : "Pro Predictor";
 
   return (
     <SidebarProvider>
@@ -96,14 +98,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="bg-primary/5 rounded-2xl p-4 flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 border-2 border-primary/10">
-                  <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100/100`} />
-                  <AvatarFallback>{profile?.username?.[0] || user?.email?.[0] || "U"}</AvatarFallback>
+                  {!user?.isAnonymous && <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100/100`} />}
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {user?.isAnonymous ? <UserCircle className="h-6 w-6" /> : (displayName?.[0] || "U")}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-sm font-bold text-primary truncate">
-                    {profile?.username || user?.email?.split("@")[0] || "User"}
+                    {displayName}
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Pro Predictor</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{displayBadge}</span>
                 </div>
               </div>
               <Separator className="bg-primary/10" />
