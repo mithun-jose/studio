@@ -187,7 +187,7 @@
           "schema": {
             "$ref": "#/backend/entities/CricketSeries"
           },
-          "description": "Stores cricket series data fetched from the Cricapi API. Cached daily by clients.",
+          "description": "Stores cricket series data fetched from the Cricapi API. Cached hourly by clients.",
           "params": [
             {
               "name": "seriesId",
@@ -237,6 +237,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is updated to support profile picture URLs and daily client-side caching of API responses."
+    "reasoning": "The Firestore data structure is updated to support profile picture URLs and hourly client-side caching of API responses for more real-time match data."
   }
 }

@@ -43,7 +43,7 @@ export interface SeriesInfoResponse {
 
 const CRICAPI_KEY = '6cbb4198-8e11-46e3-8dd5-f353458e68c1';
 const SERIES_ID = '0cdf6736-ad9b-4e95-a647-5ee3a99c5510';
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_DURATION_MS = 1 * 60 * 60 * 1000; // 1 hour (Optimized from 24 hours)
 
 export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse | null> {
   const cacheRef = doc(db, 'cricketSeries', SERIES_ID);
@@ -56,7 +56,7 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
       const lastUpdated = (cachedData.lastUpdated as Timestamp).toDate();
       const now = new Date();
 
-      // If cache is fresh (less than 24h old), return it
+      // If cache is fresh (less than 1h old), return it
       if (now.getTime() - lastUpdated.getTime() < CACHE_DURATION_MS) {
         console.log('Serving from Firestore cache');
         return cachedData.rawResponse as SeriesInfoResponse;
