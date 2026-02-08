@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -56,6 +57,8 @@ export default function LandingPage() {
                 id: result.user.uid,
                 email: emailForSignIn,
                 username: emailForSignIn!.split("@")[0],
+                totalPoints: 0,
+                accuracy: 0,
               }, { merge: true });
             }
             
@@ -112,7 +115,20 @@ export default function LandingPage() {
   const handleGuestSignIn = async () => {
     setIsGuestLoading(true);
     try {
-      await signInAnonymously(auth);
+      const result = await signInAnonymously(auth);
+      
+      // Initialize anonymous user profile
+      const userRef = doc(db, "users", result.user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        setDocumentNonBlocking(userRef, {
+          id: result.user.uid,
+          username: `Guest_${result.user.uid.substring(0, 5)}`,
+          totalPoints: 0,
+          accuracy: 0,
+        }, { merge: true });
+      }
+
       toast({
         title: "Welcome, Guest!",
         description: "You're exploring as an anonymous user.",

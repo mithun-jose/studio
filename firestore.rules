@@ -20,15 +20,16 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow everyone to list/get profiles for the leaderboard (public fields only)
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
+      // Allow public read access for the leaderboard and profile viewing
+      allow read: if true;
       
+      // Only the user can manage their own profile
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
 
       match /predictions/{predictionId} {
+        // Only the owner can see and manage their own predictions
         allow get, list: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
@@ -37,7 +38,9 @@ service cloud.firestore {
     }
 
     match /cricketSeries/{seriesId} {
+      // Series data is public
       allow get, list: if true;
+      // Only signed-in users can trigger cache updates (though typically handled by server-side logic in production)
       allow write: if isSignedIn();
 
       match /matches/{matchId} {
