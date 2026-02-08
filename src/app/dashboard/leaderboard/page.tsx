@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target, MailCheck } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 
@@ -33,6 +33,8 @@ export default function Leaderboard() {
   // Fallback to empty array if no users found yet
   const rankings = users || [];
   const totalPredictors = rankings.length;
+  // Count users who have an email field (registered vs anonymous guest)
+  const registeredEmailsCount = rankings.filter(u => !!u.email).length;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700">
@@ -42,17 +44,31 @@ export default function Leaderboard() {
           <p className="text-muted-foreground">Top predictors across the Cricket Oracle community</p>
         </div>
         
-        <Card className="bg-white border-primary/10 shadow-sm px-4 py-2 flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Users className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Predictors</span>
-            <span className="text-lg font-black text-primary">
-              {totalPredictors}{totalPredictors >= 50 ? '+' : ''}
-            </span>
-          </div>
-        </Card>
+        <div className="flex gap-4">
+          <Card className="bg-white border-primary/10 shadow-sm px-4 py-2 flex items-center gap-3">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Predictors</span>
+              <span className="text-lg font-black text-primary">
+                {totalPredictors}{totalPredictors >= 50 ? '+' : ''}
+              </span>
+            </div>
+          </Card>
+
+          <Card className="bg-white border-accent/10 shadow-sm px-4 py-2 flex items-center gap-3">
+            <div className="bg-accent/10 p-2 rounded-full">
+              <MailCheck className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Registered Emails</span>
+              <span className="text-lg font-black text-primary">
+                {registeredEmailsCount}
+              </span>
+            </div>
+          </Card>
+        </div>
       </div>
 
       {rankings.length === 0 ? (
@@ -80,6 +96,7 @@ export default function Leaderboard() {
                     <tr className="text-left text-xs font-bold uppercase tracking-widest text-muted-foreground border-b border-primary/5">
                       <th className="px-6 py-4">Rank</th>
                       <th className="px-6 py-4">Predictor</th>
+                      <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4">Accuracy</th>
                       <th className="px-6 py-4 text-right">Points</th>
                     </tr>
@@ -98,6 +115,13 @@ export default function Leaderboard() {
                             </Avatar>
                             <span className="font-bold text-sm">{user.username || 'Anonymous Fan'}</span>
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {user.email ? (
+                            <Badge variant="secondary" className="bg-accent/10 text-accent-foreground text-[9px] font-bold">PRO</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] font-bold">GUEST</Badge>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant="outline" className="border-primary/20 text-[10px] font-bold">
@@ -138,7 +162,7 @@ function TopPerformerCard({ user, rank }: { user: any, rank: number }) {
           </div>
         </div>
         <h3 className="text-xl font-headline font-bold text-primary mb-1 truncate max-w-full px-2">{user.username || 'Anonymous Fan'}</h3>
-        <p className="text-xs font-medium text-muted-foreground mb-4">ORACLE ELITE</p>
+        <p className="text-xs font-medium text-muted-foreground mb-4">{user.email ? 'ORACLE ELITE' : 'GUEST SEEKER'}</p>
         <div className="grid grid-cols-2 gap-4 w-full bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-primary/5">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Points</span>
