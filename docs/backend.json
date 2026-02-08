@@ -20,6 +20,10 @@
           "type": "string",
           "description": "User's display name."
         },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture."
+        },
         "totalPoints": {
           "type": "number",
           "description": "Sum of all points earned from correct predictions."
@@ -233,6 +237,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is updated to support daily client-side caching of API responses. This reduces API costs and improves performance while maintaining simple security rules."
+    "reasoning": "The Firestore data structure is updated to support profile picture URLs and daily client-side caching of API responses."
   }
 }

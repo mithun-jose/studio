@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -61,6 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: Home, label: "Matches", href: "/dashboard" },
     { icon: List, label: "My Predictions", href: "/dashboard/predictions" },
     { icon: Award, label: "Leaderboard", href: "/dashboard/leaderboard" },
+    { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   ];
 
   if (isUserLoading) {
@@ -76,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const displayName = profile?.username || user?.email?.split("@")[0] || (user?.isAnonymous ? "The Universal Guest" : "User");
   const displayBadge = user?.isAnonymous ? "Shared Guest Mode" : "Pro Predictor";
+  const avatarUrl = profile?.avatarUrl || `https://picsum.photos/seed/${effectiveUserId}/100/100`;
 
   return (
     <SidebarProvider>
@@ -118,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="bg-primary/5 rounded-2xl p-4 flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 border-2 border-primary/10">
-                  <AvatarImage src={`https://picsum.photos/seed/${effectiveUserId}/100/100`} />
+                  <AvatarImage src={avatarUrl} />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {user?.isAnonymous ? <UserCircle className="h-6 w-6" /> : (displayName?.[0] || "U")}
                   </AvatarFallback>
@@ -162,8 +165,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-2 right-2 h-2 w-2 bg-accent rounded-full border-2 border-white"></span>
               </button>
-              <button className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
-                <Settings className="h-5 w-5 text-muted-foreground" />
+              <button className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors" asChild>
+                <Link href="/dashboard/settings">
+                  <Settings className="h-5 w-5 text-muted-foreground" />
+                </Link>
               </button>
             </div>
           </header>
