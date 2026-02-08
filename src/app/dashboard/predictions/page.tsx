@@ -6,10 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import { format } from "date-fns";
 import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function MyPredictions() {
   const { user, isUserLoading } = useUser();
@@ -38,6 +39,14 @@ export default function MyPredictions() {
   }, [db, user]);
 
   const { data: rawPredictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
+
+  // User profile ref for syncing points
+  const userDocRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, "users", user.uid);
+  }, [db, user]);
+
+  const { data: profile } = useDoc(userDocRef);
 
   // Dynamically evaluate predictions based on latest match status
   const predictions = useMemo(() => {
@@ -70,6 +79,21 @@ export default function MyPredictions() {
     const winRate = completed.length > 0 ? Math.round((won.length / completed.length) * 100) : 0;
     return { totalPoints, winRate };
   }, [predictions]);
+
+  // Lazy Point Sync: Update the user's profile with calculated points for the leaderboard
+  useEffect(() => {
+    if (profile && userDocRef && !isPredictionsLoading && !isSeriesLoading) {
+      const shouldUpdatePoints = stats.totalPoints !== (profile.totalPoints ?? -1);
+      const shouldUpdateAccuracy = stats.winRate !== (profile.accuracy ?? -1);
+
+      if (shouldUpdatePoints || shouldUpdateAccuracy) {
+        updateDocumentNonBlocking(userDocRef, {
+          totalPoints: stats.totalPoints,
+          accuracy: stats.winRate
+        });
+      }
+    }
+  }, [profile, stats.totalPoints, stats.winRate, userDocRef, isPredictionsLoading, isSeriesLoading]);
 
   if (isUserLoading || isPredictionsLoading || isSeriesLoading) {
     return (
