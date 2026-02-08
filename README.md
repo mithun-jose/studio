@@ -25,6 +25,13 @@ If you prefer using the terminal:
 3.  Initialize App Hosting: `firebase apphosting:backends:create`
 4.  Follow the prompts to link your repository and deploy.
 
+## Finding Your Public URL
+Once your deployment is successful:
+1.  Go to the **App Hosting** section of your Firebase Console.
+2.  Select your backend.
+3.  You will see a **Domain** or **URL** listed (e.g., `your-app-id.web.app`). This is your public link!
+4.  You can also connect a custom domain in the **Settings** tab of your App Hosting backend.
+
 ## Core Features
 - **AI Predictions**: Leveraging Google Gemini via Genkit to provide probability-based match forecasts.
 - **Universal Guest Account**: A shared community profile allowing anonymous users to compete collectively.
