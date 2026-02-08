@@ -77,7 +77,8 @@ export default function MyPredictions() {
     if (!predictions) return { totalPoints: 0, winRate: 0 };
     const completed = predictions.filter(p => p.matchEnded);
     const won = completed.filter(p => p.isCorrect === true);
-    const totalPoints = predictions.reduce((acc, p) => acc + (p.isCorrect === true ? (p.points || 100) * (p.aiBonus ? 2 : 1) : 0), 0);
+    // 2 points per correct prediction, 0 for loss
+    const totalPoints = predictions.reduce((acc, p) => acc + (p.isCorrect === true ? (p.points || 2) : 0), 0);
     const winRate = completed.length > 0 ? Math.round((won.length / completed.length) * 100) : 0;
     return { totalPoints, winRate };
   }, [predictions]);
@@ -211,13 +212,8 @@ function PredictionRow({ pred }: { pred: any }) {
           <div className="flex flex-col items-center bg-muted/50 p-2 rounded-xl relative col-span-2 md:col-span-1 min-w-[90px] sm:min-w-[110px]">
             <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Points</span>
             <span className="text-lg sm:text-xl font-black text-primary">
-              {isPending ? "---" : isWon ? `+${(pred.points || 100) * (pred.aiBonus ? 2 : 1)}` : "+0"}
+              {isPending ? "---" : isWon ? `+${(pred.points || 2)}` : "+0"}
             </span>
-            {pred.aiBonus && (
-              <Badge className="absolute -top-2 -right-2 bg-accent text-primary text-[8px] font-black h-4 px-1 shadow-sm border-none">
-                AI BONUS x2
-              </Badge>
-            )}
           </div>
         </div>
       </CardContent>

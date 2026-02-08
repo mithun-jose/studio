@@ -148,11 +148,11 @@
         },
         "points": {
           "type": "number",
-          "description": "Base points awarded for the prediction (default 100)."
+          "description": "Base points awarded for a correct prediction (default 2)."
         },
         "aiBonus": {
           "type": "boolean",
-          "description": "Indicates if the user matched the AI forecast for double points."
+          "description": "Deprecated field for AI synergy bonus."
         }
       },
       "required": [

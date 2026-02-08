@@ -1,3 +1,4 @@
+
 # Cricket Oracle
 
 Predict cricket match results and climb the global leaderboard using AI-powered insights.
@@ -36,7 +37,7 @@ Once your deployment is successful:
 - **AI Predictions**: Leveraging Google Gemini via Genkit to provide probability-based match forecasts.
 - **Universal Guest Account**: A shared community profile allowing anonymous users to compete collectively.
 - **Pro Profiles**: Secure, passwordless email login for users to maintain their own unique ranking.
-- **Real-time Leaderboard**: Dynamic rankings based on prediction accuracy and total points earned.
+- **Real-time Leaderboard**: Dynamic rankings based on prediction accuracy and total points earned (2 points per correct prediction).
 - **Match Cutoffs**: Automated system that locks predictions 1 hour before match start times.
 
 ## Tech Stack

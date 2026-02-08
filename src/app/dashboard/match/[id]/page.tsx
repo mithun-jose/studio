@@ -103,15 +103,6 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       return;
     }
 
-    // Determine if prediction matches AI's top pick for the bonus
-    let hasAiMatch = false;
-    if (aiForecast && match?.teamInfo) {
-      const aiPick = aiForecast.team1WinPercentage > aiForecast.team2WinPercentage 
-        ? match.teamInfo[0].name 
-        : match.teamInfo[1].name;
-      hasAiMatch = prediction === aiPick;
-    }
-
     const predictionId = `${effectiveUserId}_${match?.id}`;
     const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
@@ -123,13 +114,13 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       predictedWinner: prediction,
       predictionTime: new Date().toISOString(),
       isCorrect: null, // Pending evaluation
-      points: 100,
-      aiBonus: hasAiMatch,
+      points: 2,
+      aiBonus: false,
     }, { merge: true });
 
     toast({
       title: existingPrediction ? "Prediction Updated!" : "Prediction Submitted!",
-      description: `You've locked in ${prediction} for the ${user?.isAnonymous ? 'Universal Guest profile' : 'your profile'}. ${hasAiMatch ? 'AI Bonus Active!' : ''}`,
+      description: `You've locked in ${prediction} for the ${user?.isAnonymous ? 'Universal Guest profile' : 'your profile'}.`,
     });
   };
 
@@ -279,8 +270,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <CardContent>
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
                 <li>Predictions must be submitted at least <strong>1 hour before</strong> the match starts.</li>
-                <li>Correct winner prediction earns 100 Oracle Points.</li>
-                <li>Points are doubled if your prediction matches the AI Forecast!</li>
+                <li>Correct winner prediction earns <strong>2 Oracle Points</strong>.</li>
+                <li>Incorrect predictions earn <strong>0 points</strong>.</li>
               </ul>
             </CardContent>
           </Card>
