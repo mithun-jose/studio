@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, use } from "react";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, BrainCircuit, Trophy, Target, ShieldCheck, Zap, Info, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, BrainCircuit, Trophy, Target, ShieldCheck, Zap, Info, Loader2, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -76,6 +75,15 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
     }
   };
 
+  const isEnded = match?.matchEnded;
+  const isStarted = match?.matchStarted;
+  
+  // Logic for 1 hour cutoff
+  const matchStartTime = match ? new Date(match.dateTimeGMT.endsWith('Z') ? match.dateTimeGMT : `${match.dateTimeGMT.replace(' ', 'T')}Z`).getTime() : 0;
+  const now = new Date().getTime();
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const isPredictionsClosed = now > (matchStartTime - ONE_HOUR_MS) || isStarted;
+
   const handlePredict = () => {
     if (!prediction) {
       toast({ title: "Please select a team", variant: "destructive" });
@@ -87,8 +95,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       return;
     }
 
-    if (match?.matchStarted) {
-      toast({ title: "Prediction Closed", description: "This match has already started.", variant: "destructive" });
+    if (isPredictionsClosed) {
+      toast({ title: "Prediction Closed", description: "Predictions must be made at least 1 hour before the match starts.", variant: "destructive" });
       return;
     }
 
@@ -125,8 +133,6 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
 
   if (!match) return <div className="text-center py-20 font-bold">Match not found</div>;
 
-  const isEnded = match.matchEnded;
-  const isStarted = match.matchStarted;
   const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
   const winner = isEnded ? getWinnerFromStatus(match.status, teamNames) : null;
 
@@ -144,8 +150,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
               <CheckCircle2 className="h-3 w-3" /> Predicted
             </Badge>
           )}
-          <Badge variant="outline" className={`font-bold px-3 py-1 ${isEnded ? 'border-primary bg-primary/5 text-primary' : 'border-accent bg-accent/5 text-primary'}`}>
-            {isEnded ? 'Match Concluded' : isStarted ? 'Predictions Closed' : 'Predictions Open'}
+          <Badge variant="outline" className={`font-bold px-3 py-1 ${isEnded ? 'border-primary bg-primary/5 text-primary' : isPredictionsClosed ? 'border-destructive bg-destructive/5 text-destructive' : 'border-accent bg-accent/5 text-primary'}`}>
+            {isEnded ? 'Match Concluded' : isPredictionsClosed ? 'Predictions Closed' : 'Predictions Open'}
           </Badge>
         </div>
       </div>
@@ -184,18 +190,18 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Prediction Form */}
         <div className="md:col-span-2 space-y-6">
-          <Card className={`shadow-lg border-primary/5 ${isStarted ? 'opacity-75' : ''}`}>
+          <Card className={`shadow-lg border-primary/5 ${isPredictionsClosed ? 'opacity-75' : ''}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <ShieldCheck className="h-5 w-5 text-accent" />
-                {isEnded ? 'Match Result' : isStarted ? 'Prediction Status' : 'Make Your Prediction'}
+                {isEnded ? 'Match Result' : isPredictionsClosed ? 'Prediction Status' : 'Make Your Prediction'}
               </CardTitle>
               <CardDescription>
-                {isEnded ? 'Final winner has been determined' : isStarted ? 'Predictions are no longer accepted for this match' : 'Select the team you believe will emerge victorious'}
+                {isEnded ? 'Final winner has been determined' : isPredictionsClosed ? 'Predictions are no longer accepted for this match (1h before start cutoff)' : 'Select the team you believe will emerge victorious'}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">
-              <RadioGroup value={prediction} onValueChange={setPrediction} disabled={isStarted} className="space-y-4">
+              <RadioGroup value={prediction} onValueChange={setPrediction} disabled={isPredictionsClosed} className="space-y-4">
                 {match.teamInfo?.map((team, idx) => {
                   const isWinningTeam = winner === team.name;
                   const isUserPick = existingPrediction?.predictedWinner === team.name;
@@ -209,7 +215,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                         <div className="flex items-center gap-2">
                           {team.name}
                           {isWinningTeam && <Trophy className="h-4 w-4 text-accent" />}
-                          {isUserPick && !isStarted && <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Your Pick</Badge>}
+                          {isUserPick && !isPredictionsClosed && <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Your Pick</Badge>}
                         </div>
                         <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-1 rounded-md">{team.shortname}</span>
                       </Label>
@@ -218,14 +224,14 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                 })}
               </RadioGroup>
             </CardContent>
-            {!isStarted && (
+            {!isPredictionsClosed && (
               <CardFooter className="pt-2">
                 <Button onClick={handlePredict} className="w-full h-12 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20">
                   {existingPrediction ? "Update Prediction" : "Lock Prediction"}
                 </Button>
               </CardFooter>
             )}
-            {isStarted && (
+            {isPredictionsClosed && (
                <CardFooter className="pt-2 flex flex-col gap-3">
                  {existingPrediction ? (
                    <div className="w-full p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
@@ -253,7 +259,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             </CardHeader>
             <CardContent>
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
-                <li>Predictions must be submitted before the match starts.</li>
+                <li>Predictions must be submitted at least <strong>1 hour before</strong> the match starts.</li>
                 <li>Correct winner prediction earns 100 Oracle Points.</li>
                 <li>Points are doubled if your prediction matches the AI Forecast!</li>
               </ul>
@@ -317,7 +323,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
                       "{aiForecast.rationale}"
                     </p>
                   </div>
-                  {!isStarted && (
+                  {!isPredictionsClosed && (
                     <Button 
                       variant="ghost" 
                       size="sm" 

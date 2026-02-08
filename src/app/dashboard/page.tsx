@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -98,6 +97,12 @@ function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boole
   
   const [localDate, setLocalDate] = useState<string>("Loading time...");
 
+  // Logic for 1 hour cutoff
+  const matchStartTime = new Date(match.dateTimeGMT.endsWith('Z') ? match.dateTimeGMT : `${match.dateTimeGMT.replace(' ', 'T')}Z`).getTime();
+  const now = new Date().getTime();
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const isPredictionsClosed = now > (matchStartTime - ONE_HOUR_MS) || match.matchStarted;
+
   useEffect(() => {
     const dateStr = match.dateTimeGMT.endsWith('Z') 
       ? match.dateTimeGMT 
@@ -183,7 +188,7 @@ function MatchCard({ match, hasPredicted }: { match: Match, hasPredicted?: boole
       <CardFooter>
         <Button asChild className="w-full rounded-xl h-11 shadow-sm font-bold group-hover:shadow-primary/20 transition-all">
           <Link href={`/dashboard/match/${match.id}`}>
-            {isEnded ? "View Result" : match.matchStarted ? "View Progress" : hasPredicted ? "Update Prediction" : "Predict Outcome"} 
+            {isEnded ? "View Result" : isPredictionsClosed ? "View Progress" : hasPredicted ? "Update Prediction" : "Predict Outcome"} 
             <ChevronRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
