@@ -19,6 +19,14 @@
         "username": {
           "type": "string",
           "description": "User's display name."
+        },
+        "totalPoints": {
+          "type": "number",
+          "description": "Sum of all points earned from correct predictions."
+        },
+        "accuracy": {
+          "type": "number",
+          "description": "Percentage of correct predictions."
         }
       },
       "required": [
@@ -159,7 +167,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles.  Path-based ownership ensures only the user can access their own profile.",
+          "description": "Stores user profiles. Path-based ownership ensures only the user can access their own profile.",
           "params": [
             {
               "name": "userId",
