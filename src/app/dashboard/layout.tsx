@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -161,15 +162,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors relative">
+              <Button variant="ghost" size="icon" className="rounded-full relative">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-2 right-2 h-2 w-2 bg-accent rounded-full border-2 border-white"></span>
-              </button>
-              <button className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors" asChild>
+              </Button>
+              <Button variant="ghost" size="icon" className="rounded-full" asChild>
                 <Link href="/dashboard/settings">
                   <Settings className="h-5 w-5 text-muted-foreground" />
                 </Link>
-              </button>
+              </Button>
             </div>
           </header>
           <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
