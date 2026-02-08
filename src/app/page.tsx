@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,19 +11,79 @@ import { Trophy, Target, ShieldCheck, Zap, ArrowRight, User } from "lucide-react
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth, useUser, useFirestore } from "@/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { doc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LandingPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
+  const { user, isUserLoading } = useUser();
 
-  const handleAuth = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.push("/dashboard");
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 1000);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Redirect happens via useEffect
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid credentials.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Initialize user profile in Firestore
+      const userRef = doc(db, "users", newUser.uid);
+      setDocumentNonBlocking(userRef, {
+        id: newUser.uid,
+        email: email,
+        username: displayName || email.split("@")[0],
+      }, { merge: true });
+
+    } catch (error: any) {
+      toast({
+        title: "Account Creation Failed",
+        description: error.message || "Could not create account.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Zap className="h-12 w-12 text-primary animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -50,7 +110,7 @@ export default function LandingPage() {
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 relative overflow-hidden">
           <div className="absolute inset-0 z-0">
             <Image
-              src="https://picsum.photos/seed/cricket-oracle/1920/1080"
+              src="https://images.unsplash.com/photo-1730739463889-34c7279277a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
               alt="Cricket Stadium"
               fill
               className="object-cover opacity-10"
@@ -106,14 +166,29 @@ export default function LandingPage() {
                     </CardHeader>
                     <CardContent className="space-y-4 pb-8">
                       <TabsContent value="login">
-                        <form onSubmit={handleAuth} className="space-y-4">
+                        <form onSubmit={handleLogin} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" placeholder="m@example.com" required className="h-12 border-primary/20" />
+                            <Input 
+                              id="email" 
+                              type="email" 
+                              placeholder="m@example.com" 
+                              required 
+                              className="h-12 border-primary/20"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
-                            <Input id="password" type="password" required className="h-12 border-primary/20" />
+                            <Input 
+                              id="password" 
+                              type="password" 
+                              required 
+                              className="h-12 border-primary/20"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                            />
                           </div>
                           <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
                             {isLoading ? "Authenticating..." : "Login"}
@@ -121,18 +196,40 @@ export default function LandingPage() {
                         </form>
                       </TabsContent>
                       <TabsContent value="signup">
-                        <form onSubmit={handleAuth} className="space-y-4">
+                        <form onSubmit={handleSignUp} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="signup-name">Display Name</Label>
-                            <Input id="signup-name" placeholder="CricketMaster" required className="h-12 border-primary/20" />
+                            <Input 
+                              id="signup-name" 
+                              placeholder="CricketMaster" 
+                              required 
+                              className="h-12 border-primary/20"
+                              value={displayName}
+                              onChange={(e) => setDisplayName(e.target.value)}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="signup-email">Email</Label>
-                            <Input id="signup-email" type="email" placeholder="m@example.com" required className="h-12 border-primary/20" />
+                            <Input 
+                              id="signup-email" 
+                              type="email" 
+                              placeholder="m@example.com" 
+                              required 
+                              className="h-12 border-primary/20"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="signup-password">Password</Label>
-                            <Input id="signup-password" type="password" required className="h-12 border-primary/20" />
+                            <Input 
+                              id="signup-password" 
+                              type="password" 
+                              required 
+                              className="h-12 border-primary/20"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                            />
                           </div>
                           <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
                             {isLoading ? "Creating Account..." : "Create Account"}
@@ -144,16 +241,8 @@ export default function LandingPage() {
                           <span className="w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                          <span className="bg-background px-2 text-muted-foreground">Secure Authentication</span>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mt-6">
-                        <Button variant="outline" className="h-12 border-primary/20 font-semibold" type="button">
-                          Google
-                        </Button>
-                        <Button variant="outline" className="h-12 border-primary/20 font-semibold" type="button">
-                          Apple
-                        </Button>
                       </div>
                     </CardContent>
                   </Tabs>

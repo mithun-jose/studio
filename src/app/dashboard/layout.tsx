@@ -1,21 +1,59 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, User } from "lucide-react";
+import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const db = useFirestore();
+
+  // Redirect to landing if not authenticated
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push("/");
+    }
+  }, [user, isUserLoading, router]);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(db, "users", user.uid);
+  }, [db, user]);
+
+  const { data: profile } = useDoc(userDocRef);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
 
   const menuItems = [
     { icon: Home, label: "Matches", href: "/dashboard" },
     { icon: List, label: "My Predictions", href: "/dashboard/predictions" },
     { icon: Award, label: "Leaderboard", href: "/dashboard/leaderboard" },
   ];
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Trophy className="h-12 w-12 text-primary animate-bounce" />
+          <p className="text-sm font-medium text-muted-foreground">Entering the Oracle...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -58,20 +96,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="bg-primary/5 rounded-2xl p-4 flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 border-2 border-primary/10">
-                  <AvatarImage src="https://picsum.photos/seed/currentuser/100/100" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100/100`} />
+                  <AvatarFallback>{profile?.username?.[0] || user?.email?.[0] || "U"}</AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-primary">John Doe</span>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-sm font-bold text-primary truncate">
+                    {profile?.username || user?.email?.split("@")[0] || "User"}
+                  </span>
                   <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Pro Predictor</span>
                 </div>
               </div>
               <Separator className="bg-primary/10" />
               <div className="flex flex-col gap-1">
-                <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-destructive transition-colors px-2 py-1">
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-destructive transition-colors px-2 py-1"
+                >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
-                </Link>
+                </button>
               </div>
             </div>
           </SidebarFooter>
