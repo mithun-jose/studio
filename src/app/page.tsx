@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Target, ShieldCheck, Zap, ArrowRight, User } from "lucide-react";
+import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser, useFirestore } from "@/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc } from "firebase/firestore";
+import { 
+  sendSignInLinkToEmail, 
+  isSignInWithEmailLink, 
+  signInWithEmailLink 
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,61 +29,92 @@ export default function LandingPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [linkSent, setLinkSent] = useState(false);
+  const [finishingSignIn, setFinishingSignIn] = useState(false);
 
-  // Redirect if already logged in
+  // Handle email link redirect
   useEffect(() => {
-    if (user && !isUserLoading) {
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let emailForSignIn = window.localStorage.getItem('emailForSignIn');
+      
+      if (!emailForSignIn) {
+        // Fallback for cases where session storage is cleared
+        emailForSignIn = window.prompt('Please provide your email for confirmation');
+      }
+
+      if (emailForSignIn) {
+        setFinishingSignIn(true);
+        signInWithEmailLink(auth, emailForSignIn, window.location.href)
+          .then(async (result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            
+            // Check if user has a profile, if not create one
+            const userRef = doc(db, "users", result.user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) {
+              setDocumentNonBlocking(userRef, {
+                id: result.user.uid,
+                email: emailForSignIn,
+                username: emailForSignIn!.split("@")[0],
+              }, { merge: true });
+            }
+            
+            router.push("/dashboard");
+          })
+          .catch((error) => {
+            console.error("Link Sign-In Error:", error);
+            toast({
+              title: "Sign-in Failed",
+              description: "The link may be expired or invalid. Please request a new one.",
+              variant: "destructive",
+            });
+            setFinishingSignIn(false);
+          });
+      }
+    }
+  }, [auth, db, router, toast]);
+
+  // Redirect if already logged in and NOT finishing a link sign-in
+  useEffect(() => {
+    if (user && !isUserLoading && !finishingSignIn) {
       router.push("/dashboard");
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, finishingSignIn]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    const actionCodeSettings = {
+      url: window.location.origin, // Redirect back to this landing page
+      handleCodeInApp: true,
+    };
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Redirect happens via useEffect
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', email);
+      setLinkSent(true);
+      toast({
+        title: "Link Sent!",
+        description: "Check your inbox for your secure login link.",
+      });
     } catch (error: any) {
       toast({
-        title: "Login Failed",
-        description: error.message || "Invalid credentials.",
+        title: "Request Failed",
+        description: error.message || "Could not send login link.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const newUser = userCredential.user;
-
-      // Initialize user profile in Firestore
-      const userRef = doc(db, "users", newUser.uid);
-      setDocumentNonBlocking(userRef, {
-        id: newUser.uid,
-        email: email,
-        username: displayName || email.split("@")[0],
-      }, { merge: true });
-
-    } catch (error: any) {
-      toast({
-        title: "Account Creation Failed",
-        description: error.message || "Could not create account.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
-  };
-
-  if (isUserLoading) {
+  if (isUserLoading || finishingSignIn) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Zap className="h-12 w-12 text-primary animate-pulse" />
+        {finishingSignIn && <p className="text-sm font-medium text-muted-foreground">Verifying your secure link...</p>}
       </div>
     );
   }
@@ -130,7 +164,7 @@ export default function LandingPage() {
                     <span className="text-primary">Conquer the League.</span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-2xl leading-relaxed">
-                    Elevate your cricket experience. Use AI-driven insights to predict match outcomes, climb the leaderboard, and prove your sporting wisdom.
+                    Elevate your cricket experience. Use passwordless, secure email login to climb the leaderboard and prove your sporting wisdom.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -140,112 +174,74 @@ export default function LandingPage() {
                     </Button>
                   </Link>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground pt-4">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="h-8 w-8 rounded-full border-2 border-background overflow-hidden bg-muted">
-                        <Image src={`https://picsum.photos/seed/user${i}/32/32`} width={32} height={32} alt="User" />
-                      </div>
-                    ))}
-                  </div>
-                  <span>Trusted by fans from around the world</span>
-                </div>
               </div>
 
               {/* Auth Card */}
               <div id="auth" className="mx-auto w-full max-w-sm lg:max-w-none">
                 <Card className="shadow-2xl border-primary/10 overflow-hidden bg-white/80 backdrop-blur-sm">
-                  <Tabs defaultValue="login" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
-                      <TabsTrigger value="login" className="text-base font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">Log In</TabsTrigger>
-                      <TabsTrigger value="signup" className="text-base font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">Sign Up</TabsTrigger>
-                    </TabsList>
-                    <CardHeader className="text-center pt-8">
-                      <CardTitle className="text-2xl font-headline font-bold">Welcome Back</CardTitle>
-                      <CardDescription>Enter your credentials to access the Oracle</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 pb-8">
-                      <TabsContent value="login">
-                        <form onSubmit={handleLogin} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input 
-                              id="email" 
-                              type="email" 
-                              placeholder="m@example.com" 
-                              required 
-                              className="h-12 border-primary/20"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input 
-                              id="password" 
-                              type="password" 
-                              required 
-                              className="h-12 border-primary/20"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                            />
-                          </div>
-                          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
-                            {isLoading ? "Authenticating..." : "Login"}
-                          </Button>
-                        </form>
-                      </TabsContent>
-                      <TabsContent value="signup">
-                        <form onSubmit={handleSignUp} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="signup-name">Display Name</Label>
-                            <Input 
-                              id="signup-name" 
-                              placeholder="CricketMaster" 
-                              required 
-                              className="h-12 border-primary/20"
-                              value={displayName}
-                              onChange={(e) => setDisplayName(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="signup-email">Email</Label>
-                            <Input 
-                              id="signup-email" 
-                              type="email" 
-                              placeholder="m@example.com" 
-                              required 
-                              className="h-12 border-primary/20"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="signup-password">Password</Label>
-                            <Input 
-                              id="signup-password" 
-                              type="password" 
-                              required 
-                              className="h-12 border-primary/20"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                            />
-                          </div>
-                          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
-                            {isLoading ? "Creating Account..." : "Create Account"}
-                          </Button>
-                        </form>
-                      </TabsContent>
-                      <div className="relative mt-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
+                  <CardHeader className="text-center pt-8">
+                    <CardTitle className="text-2xl font-headline font-bold">
+                      {linkSent ? "Check Your Inbox" : "Secure Login"}
+                    </CardTitle>
+                    <CardDescription>
+                      {linkSent 
+                        ? "We've sent a magic login link to your email." 
+                        : "No password needed. We'll email you a secure link."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pb-8">
+                    {!linkSent ? (
+                      <form onSubmit={handleSendLink} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email Address</Label>
+                          <Input 
+                            id="email" 
+                            type="email" 
+                            placeholder="your@email.com" 
+                            required 
+                            className="h-12 border-primary/20"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={isLoading}
+                          />
                         </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-background px-2 text-muted-foreground">Secure Authentication</span>
+                        <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Link...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="mr-2 h-4 w-4" /> Get Login Link
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    ) : (
+                      <div className="flex flex-col items-center text-center py-6 space-y-4">
+                        <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="h-10 w-10" />
                         </div>
+                        <div className="space-y-2">
+                          <p className="font-bold text-lg">Verification Link Sent</p>
+                          <p className="text-sm text-muted-foreground">
+                            Click the link in the email we just sent to <span className="font-medium text-primary">{email}</span> to finish signing in.
+                          </p>
+                        </div>
+                        <Button variant="ghost" className="text-xs text-muted-foreground underline" onClick={() => setLinkSent(false)}>
+                          Entered the wrong email?
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Tabs>
+                    )}
+                    <div className="relative mt-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Secure Passwordless Auth</span>
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
               </div>
             </div>
