@@ -167,7 +167,7 @@ export default function LandingPage() {
           <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Oracle</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#features">
+          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/features">
             Features
           </Link>
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="#about">
@@ -305,48 +305,6 @@ export default function LandingPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section id="features" className="w-full py-20 bg-muted/30">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
-              <h2 className="text-3xl font-headline font-bold tracking-tighter sm:text-5xl text-primary">Master the Prediction Game</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl lg:text-lg leading-relaxed">
-                Cricket Oracle provides you with professional tools to dominate your friend groups and leagues.
-              </p>
-            </div>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-2xl shadow-sm border border-primary/5 transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Target className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-headline font-bold text-center">Precise Odds</h3>
-                <p className="text-center text-muted-foreground text-sm">Real-time match data fetched from official cricket feeds for the most accurate schedules.</p>
-              </div>
-              <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-2xl shadow-sm border border-primary/5 transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="p-3 bg-accent/20 rounded-xl">
-                  <Zap className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-headline font-bold text-center">AI Forecasting</h3>
-                <p className="text-center text-muted-foreground text-sm">Leverage Gemini-powered AI to analyze player stats and match conditions for winning insights.</p>
-              </div>
-              <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-2xl shadow-sm border border-primary/5 transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <ShieldCheck className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-headline font-bold text-center">Trusted Rankings</h3>
-                <p className="text-center text-muted-foreground text-sm">Transparent scoring system that ranks players based on prediction accuracy and consistency.</p>
-              </div>
-              <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-2xl shadow-sm border border-primary/5 transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="p-3 bg-accent/20 rounded-xl">
-                  <Trophy className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-headline font-bold text-center">Seasonal Prizes</h3>
-                <p className="text-center text-muted-foreground text-sm">Win exclusive badges and top the annual leaderboard to be crowned the ultimate Cricket Oracle.</p>
               </div>
             </div>
           </div>
