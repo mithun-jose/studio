@@ -1,28 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, ChevronRight, Zap, Target, History, Trophy, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query } from "firebase/firestore";
+import { cn } from "@/lib/utils";
+
+type FilterType = 'all' | 'live' | 'upcoming' | 'finished';
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [seriesInfo, setSeriesInfo] = useState<any>(null);
+  const [filter, setFilter] = useState<FilterType>('all');
   const db = useFirestore();
   const { user } = useUser();
 
   const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
 
-  // Fetch user's predictions (or universal guest predictions) to show "Predicted" status on cards
   const predictionsQuery = useMemoFirebase(() => {
     if (!db || !effectiveUserId) return null;
     return query(collection(db, "users", effectiveUserId, "predictions"));
@@ -34,7 +37,6 @@ export default function Dashboard() {
     async function loadData() {
       const data = await fetchSeriesInfo(db);
       if (data) {
-        // Sort matches by date (earliest first)
         const sortedMatches = [...data.data.matchList].sort((a, b) => 
           new Date(a.dateTimeGMT).getTime() - new Date(b.dateTimeGMT).getTime()
         );
@@ -46,6 +48,24 @@ export default function Dashboard() {
     loadData();
   }, [db]);
 
+  const filteredMatches = useMemo(() => {
+    return matches.filter(match => {
+      const isLive = match.status.toLowerCase().includes("live") || (match.matchStarted && !match.matchEnded);
+      const isEnded = match.matchEnded;
+      const isUpcoming = !match.matchStarted;
+
+      if (filter === 'live') return isLive;
+      if (filter === 'upcoming') return isUpcoming && !isEnded;
+      if (filter === 'finished') return isEnded;
+      return true;
+    });
+  }, [matches, filter]);
+
+  const stats = useMemo(() => {
+    const liveCount = matches.filter(m => m.status.toLowerCase().includes("live") || (m.matchStarted && !m.matchEnded)).length;
+    return { liveCount };
+  }, [matches]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -53,43 +73,77 @@ export default function Dashboard() {
           <h1 className="text-3xl font-headline font-bold text-primary">Live & Upcoming Matches</h1>
           <p className="text-muted-foreground">Predict results for {seriesInfo?.name || "Cricket Series"}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="rounded-full border-primary/20 bg-white">
-            <History className="h-4 w-4 mr-2" /> Results
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant={filter === 'all' ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setFilter('all')}
+            className="rounded-full"
+          >
+            All
           </Button>
-          <Button size="sm" className="rounded-full shadow-lg shadow-primary/10">
-             Live Matches <Badge variant="secondary" className="ml-2 bg-accent text-primary h-5 p-0 px-1">2</Badge>
+          <Button 
+            variant={filter === 'live' ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setFilter('live')}
+            className={cn("rounded-full", filter === 'live' ? "bg-red-500 hover:bg-red-600" : "")}
+          >
+            <PlayCircle className="h-4 w-4 mr-2" /> Live {stats.liveCount > 0 && <Badge variant="secondary" className="ml-1 h-4 p-0 px-1 bg-white text-red-500">{stats.liveCount}</Badge>}
+          </Button>
+          <Button 
+            variant={filter === 'upcoming' ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setFilter('upcoming')}
+            className="rounded-full"
+          >
+            <Clock className="h-4 w-4 mr-2" /> Upcoming
+          </Button>
+          <Button 
+            variant={filter === 'finished' ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setFilter('finished')}
+            className="rounded-full"
+          >
+            <History className="h-4 w-4 mr-2" /> Finished
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden border-none shadow-md">
-              <Skeleton className="h-40 w-full" />
-              <CardHeader>
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardFooter>
-                <Skeleton className="h-10 w-full" />
-              </CardFooter>
-            </Card>
-          ))
-        ) : (
-          matches.map((match) => {
-            const userPrediction = predictions?.find(p => p.matchId === match.id);
-            return (
-              <MatchCard 
-                key={match.id} 
-                match={match} 
-                predictedTeam={userPrediction?.predictedWinner} 
-              />
-            );
-          })
-        )}
-      </div>
+      {filteredMatches.length === 0 && !loading ? (
+        <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed border-primary/10">
+          <ListFilter className="h-12 w-12 text-primary/20 mx-auto mb-4" />
+          <p className="text-muted-foreground font-medium">No matches found matching your current filter.</p>
+          <Button variant="link" onClick={() => setFilter('all')}>View All Matches</Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden border-none shadow-md">
+                <Skeleton className="h-40 w-full" />
+                <CardHeader>
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardFooter>
+                  <Skeleton className="h-10 w-full" />
+                </CardFooter>
+              </Card>
+            ))
+          ) : (
+            filteredMatches.map((match) => {
+              const userPrediction = predictions?.find(p => p.matchId === match.id);
+              return (
+                <MatchCard 
+                  key={match.id} 
+                  match={match} 
+                  predictedTeam={userPrediction?.predictedWinner} 
+                />
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -102,7 +156,6 @@ function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: str
   
   const [localDate, setLocalDate] = useState<string>("Loading time...");
 
-  // Logic for 1 hour cutoff
   const matchStartTime = new Date(match.dateTimeGMT.endsWith('Z') ? match.dateTimeGMT : `${match.dateTimeGMT.replace(' ', 'T')}Z`).getTime();
   const now = new Date().getTime();
   const ONE_HOUR_MS = 60 * 60 * 1000;
