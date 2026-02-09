@@ -1,17 +1,18 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, updateDocumentNonBlocking } from "@/firebase";
+import { doc, collection, query } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
+import { fetchSeriesInfo, getWinnerFromStatus, Match } from "@/lib/api";
 
 /**
  * A sub-component to handle the Sidebar content so it can access the useSidebar hook
@@ -28,7 +29,6 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   ];
 
-  // Helper to close mobile sidebar on link click
   const closeMobile = () => {
     if (isMobile) {
       setOpenMobile(false);
@@ -115,6 +115,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isSeriesLoading, setIsSeriesLoading] = useState(true);
 
   // Redirect to landing if not authenticated
   useEffect(() => {
@@ -123,7 +125,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, isUserLoading, router]);
 
-  // Force anonymous users to the shared universal-guest ID
   const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
 
   const userDocRef = useMemoFirebase(() => {
@@ -132,6 +133,57 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [db, effectiveUserId]);
 
   const { data: profile, isLoading: isLoadingProfile } = useDoc(userDocRef);
+
+  // Fetch matches for point calculation
+  useEffect(() => {
+    async function loadData() {
+      const data = await fetchSeriesInfo(db);
+      if (data) {
+        setMatches(data.data.matchList);
+      }
+      setIsSeriesLoading(false);
+    }
+    loadData();
+  }, [db]);
+
+  // Fetch user predictions
+  const predictionsQuery = useMemoFirebase(() => {
+    if (!db || !effectiveUserId) return null;
+    return query(collection(db, "users", effectiveUserId, "predictions"));
+  }, [db, effectiveUserId]);
+
+  const { data: predictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
+
+  // Lazy Point Sync Logic
+  useEffect(() => {
+    if (profile && userDocRef && predictions && matches.length > 0 && !isPredictionsLoading && !isSeriesLoading) {
+      const completed = predictions.filter(pred => {
+        const match = matches.find(m => m.id === pred.matchId);
+        return match?.matchEnded;
+      });
+
+      const wins = completed.filter(pred => {
+        const match = matches.find(m => m.id === pred.matchId);
+        if (!match) return false;
+        const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
+        const actualWinner = getWinnerFromStatus(match.status, teamNames);
+        return pred.predictedWinner === actualWinner;
+      });
+
+      const calculatedPoints = wins.length * 2;
+      const calculatedAccuracy = completed.length > 0 ? Math.round((wins.length / completed.length) * 100) : 0;
+
+      const needsUpdate = (profile.totalPoints ?? -1) !== calculatedPoints || 
+                          (profile.accuracy ?? -1) !== calculatedAccuracy;
+
+      if (needsUpdate) {
+        updateDocumentNonBlocking(userDocRef, {
+          totalPoints: calculatedPoints,
+          accuracy: calculatedAccuracy,
+        });
+      }
+    }
+  }, [profile, userDocRef, predictions, matches, isPredictionsLoading, isSeriesLoading]);
 
   // Initialization: Ensure every logged-in user or the shared guest has a profile
   useEffect(() => {

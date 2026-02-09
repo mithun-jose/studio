@@ -10,7 +10,6 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@
 import { collection, query, orderBy, doc } from "firebase/firestore";
 import { format } from "date-fns";
 import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function MyPredictions() {
   const { user, isUserLoading } = useUser();
@@ -42,7 +41,7 @@ export default function MyPredictions() {
 
   const { data: rawPredictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
 
-  // User profile ref for syncing points
+  // User profile ref for display
   const userDocRef = useMemoFirebase(() => {
     if (!db || !effectiveUserId) return null;
     return doc(db, "users", effectiveUserId);
@@ -58,7 +57,6 @@ export default function MyPredictions() {
       const match = matches.find(m => m.id === pred.matchId);
       if (!match) return pred;
 
-      // Parse winner from status if match ended
       const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
       const actualWinner = match.matchEnded ? getWinnerFromStatus(match.status, teamNames) : null;
 
@@ -73,31 +71,6 @@ export default function MyPredictions() {
     });
   }, [rawPredictions, matches]);
 
-  const stats = useMemo(() => {
-    if (!predictions) return { totalPoints: 0, winRate: 0 };
-    const completed = predictions.filter(p => p.matchEnded);
-    const won = completed.filter(p => p.isCorrect === true);
-    // 2 points per correct prediction, 0 for loss
-    const totalPoints = predictions.reduce((acc, p) => acc + (p.isCorrect === true ? (p.points || 2) : 0), 0);
-    const winRate = completed.length > 0 ? Math.round((won.length / completed.length) * 100) : 0;
-    return { totalPoints, winRate };
-  }, [predictions]);
-
-  // Lazy Point Sync: Update the user's profile with calculated points for the leaderboard
-  useEffect(() => {
-    if (profile && userDocRef && !isPredictionsLoading && !isSeriesLoading) {
-      const shouldUpdatePoints = stats.totalPoints !== (profile.totalPoints ?? -1);
-      const shouldUpdateAccuracy = stats.winRate !== (profile.accuracy ?? -1);
-
-      if (shouldUpdatePoints || shouldUpdateAccuracy) {
-        updateDocumentNonBlocking(userDocRef, {
-          totalPoints: stats.totalPoints,
-          accuracy: stats.winRate
-        });
-      }
-    }
-  }, [profile, stats.totalPoints, stats.winRate, userDocRef, isPredictionsLoading, isSeriesLoading]);
-
   if (isUserLoading || isPredictionsLoading || isSeriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -105,6 +78,9 @@ export default function MyPredictions() {
       </div>
     );
   }
+
+  const totalPoints = profile?.totalPoints || 0;
+  const accuracy = profile?.accuracy || 0;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
@@ -122,12 +98,12 @@ export default function MyPredictions() {
         <Card className="bg-primary text-white border-none shadow-lg px-6 py-4 flex items-center justify-between sm:justify-start gap-4 sm:gap-6 w-full md:w-auto">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-white/50 uppercase">Points</span>
-            <span className="text-xl sm:text-2xl font-black">{stats.totalPoints.toLocaleString()}</span>
+            <span className="text-xl sm:text-2xl font-black">{totalPoints.toLocaleString()}</span>
           </div>
           <div className="h-10 w-px bg-white/20 hidden sm:block"></div>
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-white/50 uppercase">Accuracy</span>
-            <span className="text-xl sm:text-2xl font-black">{stats.winRate}%</span>
+            <span className="text-xl sm:text-2xl font-black">{accuracy}%</span>
           </div>
         </Card>
       </div>
@@ -164,7 +140,6 @@ function PredictionRow({ pred }: { pred: any }) {
   return (
     <Card className="border-primary/5 hover:border-primary/20 transition-all hover:shadow-md bg-white overflow-hidden">
       <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-        {/* Match Info Section */}
         <div className="flex items-center gap-4 w-full md:w-auto min-w-0">
           <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${
             isWon ? 'bg-green-100 text-green-600' : 
@@ -189,7 +164,6 @@ function PredictionRow({ pred }: { pred: any }) {
           </div>
         </div>
 
-        {/* Stats Section */}
         <div className="grid grid-cols-2 md:flex md:items-center justify-between md:justify-end gap-3 sm:gap-6 w-full md:w-auto">
           <div className="flex flex-col items-center">
             <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Predicted</span>
