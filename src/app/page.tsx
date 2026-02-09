@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle } from "lucide-react";
+import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,7 +36,7 @@ export default function LandingPage() {
 
   // Handle email link redirect
   useEffect(() => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
+    if (typeof window !== "undefined" && isSignInWithEmailLink(auth, window.location.href)) {
       let emailForSignIn = window.localStorage.getItem('emailForSignIn');
       
       if (!emailForSignIn) {
@@ -89,8 +89,11 @@ export default function LandingPage() {
     e.preventDefault();
     setIsLoading(true);
     
+    // Use the current origin as the redirect URL
+    const continueUrl = typeof window !== "undefined" ? window.location.origin : "";
+    
     const actionCodeSettings = {
-      url: window.location.origin,
+      url: continueUrl,
       handleCodeInApp: true,
     };
 
@@ -103,11 +106,22 @@ export default function LandingPage() {
         description: "Check your inbox for your secure login link.",
       });
     } catch (error: any) {
-      toast({
-        title: "Request Failed",
-        description: error.message || "Could not send login link.",
-        variant: "destructive",
-      });
+      console.error("Email Link Error:", error);
+      
+      // Specifically handle the domain not authorized error
+      if (error.code === 'auth/unauthorized-continue-uri') {
+        toast({
+          title: "Domain Error",
+          description: "This domain is not authorized in the Firebase Console. Please add " + continueUrl + " to your Authorized Domains.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Request Failed",
+          description: error.message || "Could not send login link.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +130,6 @@ export default function LandingPage() {
   const handleGuestSignIn = async () => {
     setIsGuestLoading(true);
     try {
-      // Still sign in anonymously to satisfy Firebase rules for a valid UID session
       await signInAnonymously(auth);
       
       // Initialize the shared 'universal-guest' profile if it doesn't exist

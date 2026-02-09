@@ -26,6 +26,12 @@ If you prefer using the terminal:
 3.  Initialize App Hosting: `firebase apphosting:backends:create`
 4.  Follow the prompts to link your repository and deploy.
 
+## CRITICAL: Authorized Domains
+If you experience a "domain name error" when signing in:
+1.  Go to **Firebase Console > Authentication > Settings > Authorized Domains**.
+2.  Add your public URL (e.g., `your-app-id.web.app` or your custom domain).
+3.  Also ensure `localhost` is added for local development.
+
 ## Finding Your Public URL
 Once your deployment is successful:
 1.  Go to the **App Hosting** section of your Firebase Console.
