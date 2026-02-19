@@ -11,8 +11,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query } from "firebase/firestore";
+import { collection, query, doc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type FilterType = 'all' | 'live' | 'upcoming' | 'finished';
 
@@ -138,6 +140,8 @@ export default function Dashboard() {
                   key={match.id} 
                   match={match} 
                   predictedTeam={userPrediction?.predictedWinner} 
+                  db={db}
+                  effectiveUserId={effectiveUserId}
                 />
               );
             })
@@ -148,7 +152,8 @@ export default function Dashboard() {
   );
 }
 
-function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: string }) {
+function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match, predictedTeam?: string, db: any, effectiveUserId: string | undefined }) {
+  const { toast } = useToast();
   const isLive = match.status.toLowerCase().includes("live") || (match.matchStarted && !match.matchEnded);
   const isEnded = match.matchEnded;
   const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
@@ -173,9 +178,37 @@ function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: str
       setLocalDate("Date unavailable");
     }
   }, [match.dateTimeGMT]);
+
+  const handlePredict = (teamName: string) => {
+    if (isPredictionsClosed || isEnded) return;
+
+    if (!effectiveUserId) {
+      toast({ title: "Login required", description: "Please sign in to make predictions.", variant: "destructive" });
+      return;
+    }
+
+    const predictionId = `${effectiveUserId}_${match.id}`;
+    const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
+
+    setDocumentNonBlocking(predictionRef, {
+      id: predictionId,
+      userId: effectiveUserId,
+      matchId: match.id,
+      matchName: match.name,
+      predictedWinner: teamName,
+      predictionTime: new Date().toISOString(),
+      isCorrect: null,
+      points: 2,
+    }, { merge: true });
+
+    toast({
+      title: "Prediction Locked!",
+      description: `You've picked ${teamName} to win.`,
+    });
+  };
   
   return (
-    <Card className="group relative overflow-hidden border-primary/5 hover:border-primary/20 transition-all hover:shadow-xl hover:-translate-y-1 bg-white">
+    <Card className="group relative overflow-hidden border-primary/5 hover:border-primary/20 transition-all hover:shadow-xl bg-white flex flex-col h-full">
       <div className={`absolute top-0 left-0 w-1 h-full transition-all ${isLive ? 'bg-red-500' : isEnded ? 'bg-primary' : 'bg-primary/20'}`}></div>
       <CardHeader className="pb-4">
         <div className="flex justify-between items-center mb-2">
@@ -194,27 +227,38 @@ function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: str
           </div>
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{match.matchType}</span>
         </div>
-        <CardTitle className="text-lg leading-tight mb-1 group-hover:text-primary transition-colors">{match.name}</CardTitle>
+        <Link href={`/dashboard/match/${match.id}`} className="hover:underline">
+          <CardTitle className="text-lg leading-tight mb-1 group-hover:text-primary transition-colors">{match.name}</CardTitle>
+        </Link>
         <CardDescription className="flex items-center gap-1.5 text-xs">
           <Calendar className="h-3 w-3" /> {localDate}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 flex-1">
         <div className="flex items-center justify-between gap-2">
           {match.teamInfo?.map((team, idx) => {
             const isWinner = winner === team.name;
             const isPredicted = predictedTeam === team.name;
             return (
-              <div key={team.id || idx} className="flex flex-col items-center flex-1 text-center relative">
-                <div className={`w-16 h-16 rounded-2xl p-2 flex items-center justify-center mb-2 border transition-all overflow-hidden relative ${
+              <div 
+                key={team.id || idx} 
+                className={cn(
+                  "flex flex-col items-center flex-1 text-center relative p-2 rounded-2xl transition-all",
+                  !isPredictionsClosed && !isEnded && "cursor-pointer hover:bg-primary/5",
+                  isPredicted && "bg-primary/5"
+                )}
+                onClick={() => handlePredict(team.name)}
+              >
+                <div className={cn(
+                  "w-16 h-16 rounded-2xl p-2 flex items-center justify-center mb-2 border transition-all overflow-hidden relative",
                   isWinner ? 'bg-accent/10 border-accent shadow-md' : 
-                  isPredicted ? 'bg-primary/5 border-primary/30 shadow-sm' :
+                  isPredicted ? 'bg-primary/20 border-primary/50 shadow-sm' :
                   'bg-muted/30 border-primary/5 group-hover:border-primary/20'
-                }`}>
+                )}>
                   {team.img ? (
                      <Image src={team.img} alt={team.name} width={48} height={48} className="object-contain" />
                   ) : (
-                    <Target className="h-8 w-8 text-primary/30" />
+                    <Trophy className="h-8 w-8 text-primary/30" />
                   )}
                   {isWinner && (
                     <div className="absolute top-0 right-0 p-0.5 bg-accent rounded-bl-lg">
@@ -222,15 +266,15 @@ function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: str
                     </div>
                   )}
                 </div>
-                <span className={`text-sm font-bold truncate w-full ${isWinner ? 'text-primary' : isPredicted ? 'text-primary/70' : ''}`}>
+                <span className={cn(
+                  "text-xs font-bold truncate w-full",
+                  isWinner ? 'text-primary' : isPredicted ? 'text-primary font-black' : ''
+                )}>
                   {team.shortname || team.name}
                 </span>
               </div>
             );
           })}
-          <div className="flex flex-col items-center">
-            <span className="text-xs font-headline font-black text-muted-foreground/30 italic">VS</span>
-          </div>
         </div>
         
         {isEnded && (
@@ -246,13 +290,30 @@ function MatchCard({ match, predictedTeam }: { match: Match, predictedTeam?: str
           <span className="truncate">{match.venue}</span>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button asChild className="w-full rounded-xl h-11 shadow-sm font-bold group-hover:shadow-primary/20 transition-all">
-          <Link href={`/dashboard/match/${match.id}`}>
-            {isEnded ? "View Result" : isPredictionsClosed ? "View Progress" : predictedTeam ? "Update Prediction" : "Predict Outcome"} 
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+      <CardFooter className="pt-0 pb-6 px-6">
+        {!isPredictionsClosed && !isEnded ? (
+          <div className="grid grid-cols-2 gap-2 w-full">
+            {match.teamInfo?.map((team) => (
+              <Button 
+                key={team.id}
+                variant={predictedTeam === team.name ? "default" : "outline"}
+                className={cn(
+                  "h-10 text-[10px] font-bold rounded-xl transition-all",
+                  predictedTeam === team.name ? "shadow-md shadow-primary/20" : "hover:border-primary/50"
+                )}
+                onClick={() => handlePredict(team.name)}
+              >
+                {predictedTeam === team.name ? "PICKED" : `PICK ${team.shortname}`}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <Button asChild variant="ghost" className="w-full text-xs font-bold text-muted-foreground hover:text-primary">
+            <Link href={`/dashboard/match/${match.id}`}>
+              {isEnded ? "Final Result" : "View Progress"} <ChevronRight className="ml-1 h-3 w-3" />
+            </Link>
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
