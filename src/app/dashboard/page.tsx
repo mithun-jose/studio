@@ -241,7 +241,7 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
             const isPredicted = predictedTeam === team.name;
             return (
               <div 
-                key={team.id || idx} 
+                key={team.id || team.name || idx} 
                 className={cn(
                   "flex flex-col items-center flex-1 text-center relative p-2 rounded-2xl transition-all",
                   !isPredictionsClosed && !isEnded && "cursor-pointer hover:bg-primary/5",
@@ -293,9 +293,9 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
       <CardFooter className="pt-0 pb-6 px-6">
         {!isPredictionsClosed && !isEnded ? (
           <div className="grid grid-cols-2 gap-2 w-full">
-            {match.teamInfo?.map((team) => (
+            {match.teamInfo?.map((team, idx) => (
               <Button 
-                key={team.id}
+                key={team.id || team.name || idx}
                 variant={predictedTeam === team.name ? "default" : "outline"}
                 className={cn(
                   "h-10 text-[10px] font-bold rounded-xl transition-all",
