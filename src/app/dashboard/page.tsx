@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, Zap } from "lucide-react";
+import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, Zap, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -267,11 +267,6 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
             <Badge variant="outline" className="bg-accent/10 border-accent/20 text-primary font-bold gap-1">
               <Zap className="h-3 w-3" /> {pointValue} PTS
             </Badge>
-            {predictedTeam && (
-              <Badge className="bg-green-500/10 text-green-600 border-green-200 gap-1 px-2">
-                <CheckCircle2 className="h-3 w-3" /> {predictedTeam}
-              </Badge>
-            )}
           </div>
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{match.matchType}</span>
         </div>
@@ -333,9 +328,30 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 p-2 rounded-lg font-medium">
-          <MapPin className="h-3 w-3 shrink-0" />
-          <span className="truncate">{match.venue}</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 p-2 rounded-lg font-medium">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span className="truncate">{match.venue}</span>
+          </div>
+          
+          <div className={cn(
+            "flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-bold transition-all",
+            predictedTeam 
+              ? "bg-green-500/5 border-green-500/20 text-green-600" 
+              : "bg-orange-500/5 border-orange-500/20 text-orange-600"
+          )}>
+            {predictedTeam ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Your Pick: {predictedTeam}</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>No prediction locked</span>
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
       <CardFooter className="pt-0 pb-6 px-6">
