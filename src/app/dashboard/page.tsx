@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, Zap, AlertTriangle } from "lucide-react";
+import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, Zap, AlertTriangle, XCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -211,6 +211,9 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
   const isPredictionsClosed = now > (matchStartTime - ONE_HOUR_MS) || match.matchStarted;
   const pointValue = getMatchPointValue(match.name);
 
+  const isWrong = isEnded && predictedTeam && winner && winner !== predictedTeam;
+  const isRight = isEnded && predictedTeam && winner === predictedTeam;
+
   useEffect(() => {
     const dateStr = match.dateTimeGMT.endsWith('Z') 
       ? match.dateTimeGMT 
@@ -336,14 +339,19 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
           
           <div className={cn(
             "flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-bold transition-all",
-            predictedTeam 
-              ? "bg-green-500/5 border-green-500/20 text-green-600" 
-              : "bg-orange-500/5 border-orange-500/20 text-orange-600"
+            !predictedTeam 
+              ? "bg-orange-500/5 border-orange-500/20 text-orange-600"
+              : isWrong
+                ? "bg-red-500/5 border-red-500/20 text-red-600"
+                : "bg-green-500/5 border-green-500/20 text-green-600"
           )}>
             {predictedTeam ? (
               <>
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Your Pick: {predictedTeam}</span>
+                {isWrong ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                <span>
+                  Your Pick: {predictedTeam} 
+                  {isWrong ? " (Lost)" : isRight ? " (Won)" : ""}
+                </span>
               </>
             ) : (
               <>
