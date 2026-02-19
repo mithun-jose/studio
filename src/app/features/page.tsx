@@ -4,6 +4,7 @@
 import { Trophy, Target, ShieldCheck, Zap, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function FeaturesPage() {
   return (
@@ -11,8 +12,13 @@ export default function FeaturesPage() {
       {/* Header */}
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/50 backdrop-blur-md sticky top-0 z-50">
         <Link className="flex items-center justify-center gap-2" href="/">
-          <div className="bg-primary p-1.5 rounded-lg">
-            <Trophy className="h-6 w-6 text-accent" />
+          <div className="relative h-8 w-12 overflow-hidden rounded-md bg-accent">
+            <Image 
+              src="https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg" 
+              alt="Blockbuster Logo" 
+              fill 
+              className="object-contain p-1"
+            />
           </div>
           <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Oracle</span>
         </Link>

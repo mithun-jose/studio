@@ -13,6 +13,7 @@ import { doc, collection, query } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { fetchSeriesInfo, getWinnerFromStatus, Match } from "@/lib/api";
+import Image from "next/image";
 
 /**
  * A sub-component to handle the Sidebar content so it can access the useSidebar hook
@@ -43,8 +44,13 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
     <Sidebar className="border-r border-primary/5">
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2" onClick={closeMobile}>
-          <div className="bg-primary p-1.5 rounded-lg">
-            <Trophy className="h-6 w-6 text-accent" />
+          <div className="relative h-8 w-12 overflow-hidden rounded-md bg-accent">
+            <Image 
+              src="https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg" 
+              alt="Blockbuster Logo" 
+              fill 
+              className="object-contain p-1"
+            />
           </div>
           <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Oracle</span>
         </Link>
