@@ -30,7 +30,7 @@ export default function Leaderboard() {
   }
 
   // Fallback to empty array if no users found yet
-  const rankings = users || [];
+  const rankings = rankings || users || [];
   const totalPredictors = rankings.length;
   // Count users who have an email field (registered vs anonymous guest)
   const registeredEmailsCount = rankings.filter(u => !!u.email).length;
@@ -161,7 +161,7 @@ function TopPerformerCard({ user, rank }: { user: any, rank: number }) {
           </div>
         </div>
         <h3 className="text-xl font-headline font-bold text-primary mb-1 truncate max-w-full px-2">{user.username || 'Anonymous Fan'}</h3>
-        <p className="text-xs font-medium text-muted-foreground mb-4">{user.email ? 'ORACLE ELITE' : 'GUEST SEEKER'}</p>
+        <p className="text-xs font-medium text-muted-foreground mb-4">{user.email ? 'BLOCKBUSTER ELITE' : 'GUEST SEEKER'}</p>
         <div className="grid grid-cols-2 gap-4 w-full bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-primary/5">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Points</span>
