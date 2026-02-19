@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +31,7 @@ export default function Leaderboard() {
   }
 
   // Fallback to empty array if no users found yet
-  const rankings = rankings || users || [];
+  const rankings = users || [];
   const totalPredictors = rankings.length;
   // Count users who have an email field (registered vs anonymous guest)
   const registeredEmailsCount = rankings.filter(u => !!u.email).length;
