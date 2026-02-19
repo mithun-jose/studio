@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -14,6 +13,19 @@ import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { fetchSeriesInfo, getWinnerFromStatus, Match } from "@/lib/api";
 import Image from "next/image";
+
+/**
+ * Helper to determine if a match is a high-value game (Super 8 and beyond)
+ */
+function getMatchPointValue(matchName: string): number {
+  const name = matchName.toLowerCase();
+  const isHighValue = name.includes("super 8") || 
+                      name.includes("super eight") || 
+                      name.includes("semi-final") || 
+                      name.includes("semi final") || 
+                      name.includes("final");
+  return isHighValue ? 3 : 2;
+}
 
 /**
  * A sub-component to handle the Sidebar content so it can access the useSidebar hook
@@ -177,9 +189,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         const isCorrect = pred.predictedWinner === actualWinner;
         if (isCorrect) {
-          // Rule: Super Eight matches award 3 points, others 2
-          const isSuperEight = match.name.toLowerCase().includes("super 8") || match.name.toLowerCase().includes("super eight");
-          calculatedPoints += isSuperEight ? 3 : 2;
+          // New Rule: Super Eight matches and beyond award 3 points, others 2
+          const pointsAwarded = getMatchPointValue(match.name);
+          calculatedPoints += pointsAwarded;
         }
         return isCorrect;
       });

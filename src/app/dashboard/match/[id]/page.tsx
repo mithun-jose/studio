@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, use } from "react";
@@ -18,6 +17,19 @@ import Image from "next/image";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+
+/**
+ * Helper to determine if a match is a high-value game (Super 8 and beyond)
+ */
+function getMatchPointValue(matchName: string): number {
+  const name = matchName.toLowerCase();
+  const isHighValue = name.includes("super 8") || 
+                      name.includes("super eight") || 
+                      name.includes("semi-final") || 
+                      name.includes("semi final") || 
+                      name.includes("final");
+  return isHighValue ? 3 : 2;
+}
 
 export default function MatchDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -86,6 +98,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
   const now = new Date().getTime();
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const isPredictionsClosed = now > (matchStartTime - ONE_HOUR_MS) || isStarted;
+  const pointValue = match ? getMatchPointValue(match.name) : 2;
 
   const handlePredict = () => {
     if (!prediction) {
@@ -106,10 +119,6 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
     const predictionId = `${effectiveUserId}_${match?.id}`;
     const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
-    // Rule: Super Eight matches award 3 points, others 2
-    const isSuperEight = match?.name.toLowerCase().includes("super 8") || match?.name.toLowerCase().includes("super eight");
-    const pointsToAward = isSuperEight ? 3 : 2;
-
     setDocumentNonBlocking(predictionRef, {
       id: predictionId,
       userId: effectiveUserId,
@@ -118,13 +127,13 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       predictedWinner: prediction,
       predictionTime: new Date().toISOString(),
       isCorrect: null, // Pending evaluation
-      points: pointsToAward,
+      points: pointValue,
       aiBonus: false,
     }, { merge: true });
 
     toast({
       title: existingPrediction ? "Prediction Updated!" : "Prediction Submitted!",
-      description: `You've locked in ${prediction} for ${user?.isAnonymous ? 'the Universal Guest profile' : 'your profile'}. Potential points: ${pointsToAward}.`,
+      description: `You've locked in ${prediction} for ${user?.isAnonymous ? 'the Universal Guest profile' : 'your profile'}. Potential points: ${pointValue}.`,
     });
   };
 
@@ -157,6 +166,9 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
               <CheckCircle2 className="h-3 w-3" /> Predicted
             </Badge>
           )}
+          <Badge variant="outline" className="bg-accent/10 border-accent/20 text-primary font-bold gap-1 px-3 py-1">
+            <Zap className="h-3 w-3" /> {pointValue} Possible Points
+          </Badge>
           <Badge variant="outline" className={`font-bold px-3 py-1 ${isEnded ? 'border-primary bg-primary/5 text-primary' : isPredictionsClosed ? 'border-destructive bg-destructive/5 text-destructive' : 'border-accent bg-accent/5 text-primary'}`}>
             {isEnded ? 'Match Concluded' : isPredictionsClosed ? 'Predictions Closed' : 'Predictions Open'}
           </Badge>
@@ -274,8 +286,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <CardContent>
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
                 <li>Predictions must be submitted at least <strong>1 hour before</strong> the match starts.</li>
-                <li>Standard matches earn <strong>2 points</strong>.</li>
-                <li><strong>Super Eight</strong> matches earn <strong>3 points</strong>.</li>
+                <li>Standard group stage matches earn <strong>2 points</strong>.</li>
+                <li><strong>Super Eight, Semi-Finals, and Finals</strong> earn <strong>3 points</strong>.</li>
                 <li>Incorrect predictions earn <strong>0 points</strong>.</li>
               </ul>
             </CardContent>

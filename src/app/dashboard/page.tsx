@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, ShieldInfo } from "lucide-react";
+import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -18,6 +17,19 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type FilterType = 'all' | 'live' | 'upcoming' | 'finished';
+
+/**
+ * Helper to determine if a match is a high-value game (Super 8 and beyond)
+ */
+function getMatchPointValue(matchName: string): number {
+  const name = matchName.toLowerCase();
+  const isHighValue = name.includes("super 8") || 
+                      name.includes("super eight") || 
+                      name.includes("semi-final") || 
+                      name.includes("semi final") || 
+                      name.includes("final");
+  return isHighValue ? 3 : 2;
+}
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -129,7 +141,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-bold">Earn Points</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            <p className="text-xs text-muted-foreground">Get 2 points for most games, or <strong>3 points</strong> for Super Eight stage matches!</p>
+            <p className="text-xs text-muted-foreground">Get 2 points for group games, or <strong>3 points</strong> for Super Eight and beyond!</p>
           </CardContent>
         </Card>
         <Card className="bg-primary/5 border-primary/10 shadow-sm">
@@ -197,6 +209,7 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
   const now = new Date().getTime();
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const isPredictionsClosed = now > (matchStartTime - ONE_HOUR_MS) || match.matchStarted;
+  const pointValue = getMatchPointValue(match.name);
 
   useEffect(() => {
     const dateStr = match.dateTimeGMT.endsWith('Z') 
@@ -222,10 +235,6 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
     const predictionId = `${effectiveUserId}_${match.id}`;
     const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
-    // Rule: Super Eight matches award 3 points, others 2
-    const isSuperEight = match.name.toLowerCase().includes("super 8") || match.name.toLowerCase().includes("super eight");
-    const pointsToAward = isSuperEight ? 3 : 2;
-
     setDocumentNonBlocking(predictionRef, {
       id: predictionId,
       userId: effectiveUserId,
@@ -234,12 +243,12 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
       predictedWinner: teamName,
       predictionTime: new Date().toISOString(),
       isCorrect: null,
-      points: pointsToAward,
+      points: pointValue,
     }, { merge: true });
 
     toast({
       title: "Prediction Locked!",
-      description: `You've picked ${teamName} to win. (Worth ${pointsToAward} points)`,
+      description: `You've picked ${teamName} to win. (Worth ${pointValue} points)`,
     });
   };
   
@@ -248,12 +257,15 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
       <div className={`absolute top-0 left-0 w-1 h-full transition-all ${isLive ? 'bg-red-500' : isEnded ? 'bg-primary' : 'bg-primary/20'}`}></div>
       <CardHeader className="pb-4">
         <div className="flex justify-between items-center mb-2">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Badge 
               variant={isLive ? "default" : "secondary"} 
               className={isLive ? "bg-red-500 animate-pulse" : isEnded ? "bg-primary text-white" : "bg-muted text-muted-foreground"}
             >
-              {isLive ? "LIVE NOW" : isEnded ? "MATCH ENDED" : "UPCOMING"}
+              {isLive ? "LIVE" : isEnded ? "ENDED" : "UPCOMING"}
+            </Badge>
+            <Badge variant="outline" className="bg-accent/10 border-accent/20 text-primary font-bold gap-1">
+              <Zap className="h-3 w-3" /> {pointValue} PTS
             </Badge>
             {predictedTeam && (
               <Badge className="bg-green-500/10 text-green-600 border-green-200 gap-1 px-2">
@@ -277,7 +289,7 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
             const isPredicted = predictedTeam === team.name;
             return (
               <div 
-                key={team.id || team.name || idx} 
+                key={`${team.id || team.name || idx}`} 
                 className={cn(
                   "flex flex-col items-center flex-1 text-center relative p-2 rounded-2xl transition-all",
                   !isPredictionsClosed && !isEnded && "cursor-pointer hover:bg-primary/5",
@@ -331,13 +343,16 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
           <div className="grid grid-cols-2 gap-2 w-full">
             {match.teamInfo?.map((team, idx) => (
               <Button 
-                key={team.id || team.name || idx}
+                key={`${team.id || team.name || idx}-btn`}
                 variant={predictedTeam === team.name ? "default" : "outline"}
                 className={cn(
                   "h-10 text-[10px] font-bold rounded-xl transition-all",
                   predictedTeam === team.name ? "shadow-md shadow-primary/20" : "hover:border-primary/50"
                 )}
-                onClick={() => handlePredict(team.name)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePredict(team.name);
+                }}
               >
                 {predictedTeam === team.name ? "PICKED" : `PICK ${team.shortname}`}
               </Button>
