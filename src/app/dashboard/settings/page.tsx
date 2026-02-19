@@ -6,17 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
-import { UserCircle, ShieldAlert, CheckCircle2, Loader2, Camera, Mail, User } from "lucide-react";
+import { UserCircle, ShieldAlert, CheckCircle2, Loader2, Camera, Mail, User, Trash2, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
   const isAnonymous = user?.isAnonymous;
@@ -34,6 +39,7 @@ export default function SettingsPage() {
     avatarUrl: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -49,7 +55,7 @@ export default function SettingsPage() {
     if (isAnonymous) {
       toast({
         title: "Action Restricted",
-        description: "Anonymous users cannot modify the Universal Guest profile.",
+        description: "Anonymous users cannot modify the Universal Guest profile settings.",
         variant: "destructive",
       });
       return;
@@ -64,7 +70,6 @@ export default function SettingsPage() {
       avatarUrl: formData.avatarUrl,
     });
 
-    // Simulate a brief delay for UI feedback
     setTimeout(() => {
       setIsSaving(false);
       toast({
@@ -72,6 +77,25 @@ export default function SettingsPage() {
         description: "Your changes have been saved to the Blockbuster.",
       });
     }, 500);
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!userDocRef) return;
+    
+    setIsDeleting(true);
+    // Delete the Firestore document
+    deleteDocumentNonBlocking(userDocRef);
+    
+    toast({
+      title: "Profile Deleted",
+      description: "Your data has been removed. Signing you out...",
+    });
+
+    // Wait a moment then sign out and redirect
+    setTimeout(async () => {
+      await signOut(auth);
+      router.push("/");
+    }, 1500);
   };
 
   if (isUserLoading || isProfileLoading) {
@@ -92,7 +116,7 @@ export default function SettingsPage() {
       {isAnonymous && (
         <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-destructive shadow-sm">
           <ShieldAlert className="h-5 w-5 shrink-0" />
-          <p>You are using the <span className="font-bold">Universal Guest</span> account. Settings are locked for non-registered users.</p>
+          <p>You are using the <span className="font-bold">Universal Guest</span> account. Some settings are restricted for non-registered users.</p>
         </div>
       )}
 
@@ -161,7 +185,7 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="bg-primary/5 border-t border-primary/5 py-4 flex justify-between items-center">
             <p className="text-xs text-muted-foreground italic">
-              {isAnonymous ? "Switch to Pro to unlock customization" : "Changes are reflected instantly across the platform"}
+              {isAnonymous ? "Limited customization for guests" : "Changes are reflected instantly across the platform"}
             </p>
             <Button 
               onClick={handleSave} 
@@ -181,14 +205,44 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
 
-        <Card className="border-accent/10 bg-accent/5 shadow-sm">
+        {/* Danger Zone */}
+        <Card className="border-destructive/20 bg-destructive/5 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              Privacy Information
+            <CardTitle className="text-xl font-bold text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Danger Zone
             </CardTitle>
+            <CardDescription>Permanent actions that cannot be undone.</CardDescription>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground leading-relaxed">
-            Your points, accuracy, and display name are public for the global leaderboard. Your email address is primarily used for account security and recovery. We do not share your private data with third parties.
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white/50 rounded-2xl border border-destructive/10">
+              <div className="space-y-0.5">
+                <p className="font-bold text-sm">Delete Profile Data</p>
+                <p className="text-xs text-muted-foreground">Remove your points, username, and stats from the leaderboard.</p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="rounded-xl font-bold" disabled={isDeleting}>
+                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    Delete My Data
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-2xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action will permanently delete your profile document from the database. Your points and leaderboard rank will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteProfile} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl">
+                      Yes, Delete Everything
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardContent>
         </Card>
       </div>
