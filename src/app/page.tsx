@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -20,6 +19,7 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -34,7 +34,8 @@ export default function LandingPage() {
   const [linkSent, setLinkSent] = useState(false);
   const [finishingSignIn, setFinishingSignIn] = useState(false);
 
-  // Handle email link redirect
+  const heroImage = PlaceHolderImages.find(img => img.id === "hero-stock") || PlaceHolderImages[0];
+
   useEffect(() => {
     if (typeof window !== "undefined" && isSignInWithEmailLink(auth, window.location.href)) {
       let emailForSignIn = window.localStorage.getItem('emailForSignIn');
@@ -52,7 +53,6 @@ export default function LandingPage() {
             const userRef = doc(db, "users", result.user.uid);
             const userSnap = await getDoc(userRef);
             
-            // Always ensure the profile has the required leaderboard fields
             if (!userSnap.exists()) {
               setDocumentNonBlocking(userRef, {
                 id: result.user.uid,
@@ -78,7 +78,6 @@ export default function LandingPage() {
     }
   }, [auth, db, router, toast]);
 
-  // Redirect if already logged in and NOT finishing a link sign-in
   useEffect(() => {
     if (user && !isUserLoading && !finishingSignIn) {
       router.push("/dashboard");
@@ -89,7 +88,6 @@ export default function LandingPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Use the current origin as the redirect URL
     const continueUrl = typeof window !== "undefined" ? window.location.origin : "";
     
     const actionCodeSettings = {
@@ -108,7 +106,6 @@ export default function LandingPage() {
     } catch (error: any) {
       console.error("Email Link Error:", error);
       
-      // Specifically handle the domain not authorized error
       if (error.code === 'auth/unauthorized-continue-uri') {
         toast({
           title: "Domain Error",
@@ -132,7 +129,6 @@ export default function LandingPage() {
     try {
       await signInAnonymously(auth);
       
-      // Initialize the shared 'universal-guest' profile if it doesn't exist
       const universalGuestRef = doc(db, "users", "universal-guest");
       const guestSnap = await getDoc(universalGuestRef);
       if (!guestSnap.exists()) {
@@ -171,7 +167,6 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/50 backdrop-blur-md sticky top-0 z-50">
         <Link className="flex items-center justify-center gap-2" href="/">
           <div className="bg-primary p-1.5 rounded-lg">
@@ -190,17 +185,18 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 relative overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <Image
-              src="https://images.unsplash.com/photo-1730739463889-34c7279277a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-              alt="Cricket Stadium"
-              fill
-              className="object-cover opacity-10"
-              priority
-              data-ai-hint="cricket stadium"
-            />
+          <div className="absolute inset-0 z-0 flex items-center justify-center bg-muted/20">
+            <div className="relative w-full h-full max-w-4xl max-h-[600px] opacity-20">
+              <Image
+                src={heroImage.imageUrl}
+                alt={heroImage.description}
+                fill
+                className="object-contain"
+                priority
+                data-ai-hint={heroImage.imageHint}
+              />
+            </div>
           </div>
           <div className="container px-4 md:px-6 relative z-10 mx-auto">
             <div className="grid gap-12 lg:grid-cols-[1fr_400px] items-center">
@@ -226,7 +222,6 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Auth Card */}
               <div id="auth" className="mx-auto w-full max-w-sm lg:max-w-none">
                 <Card className="shadow-2xl border-primary/10 overflow-hidden bg-white/80 backdrop-blur-sm">
                   <CardHeader className="text-center pt-8">
@@ -324,7 +319,6 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="w-full border-t bg-white py-12">
         <div className="container px-4 md:px-6 mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
