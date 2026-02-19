@@ -278,8 +278,8 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
         </div>
         
         {isEnded && (
-          <div className="text-center bg-primary/5 p-2 rounded-lg border border-primary/10">
-            <p className="text-[10px] font-black uppercase text-primary italic leading-tight">
+          <div className="text-center bg-primary/10 p-4 rounded-xl border border-primary/20 shadow-inner animate-in zoom-in-95 duration-500">
+            <p className="text-[11px] font-black uppercase text-primary italic leading-snug">
               {match.status}
             </p>
           </div>
@@ -308,11 +308,13 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
             ))}
           </div>
         ) : (
-          <Button asChild variant="ghost" className="w-full text-xs font-bold text-muted-foreground hover:text-primary">
-            <Link href={`/dashboard/match/${match.id}`}>
-              {isEnded ? "Final Result" : "View Progress"} <ChevronRight className="ml-1 h-3 w-3" />
-            </Link>
-          </Button>
+          !isEnded && (
+            <Button asChild variant="ghost" className="w-full text-xs font-bold text-muted-foreground hover:text-primary">
+              <Link href={`/dashboard/match/${match.id}`}>
+                View Progress <ChevronRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          )
         )}
       </CardFooter>
     </Card>
