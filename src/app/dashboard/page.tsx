@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock } from "lucide-react";
+import { Calendar, MapPin, ChevronRight, History, Trophy, CheckCircle2, ListFilter, PlayCircle, Clock, Users, ShieldInfo } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -109,6 +110,37 @@ export default function Dashboard() {
             <History className="h-4 w-4 mr-2" /> Finished
           </Button>
         </div>
+      </div>
+
+      {/* Rules Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-bold">1h Cutoff</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground">Predictions lock 60 mins before match start. Once locked, they cannot be changed.</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-accent/5 border-accent/10 shadow-sm">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2">
+            <Trophy className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-bold">Earn Points</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground">Get 2 points for every correct winner predicted. Points update as soon as the match ends.</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-primary/5 border-primary/10 shadow-sm">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-bold">Guest Mode</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground">Anonymous users contribute to the "Universal Guest" rank. Sign in with email for a pro profile.</p>
+          </CardContent>
+        </Card>
       </div>
 
       {filteredMatches.length === 0 && !loading ? (
