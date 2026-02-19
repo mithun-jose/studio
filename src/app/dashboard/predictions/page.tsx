@@ -47,7 +47,12 @@ export default function PredictionsPage() {
   const usersQuery = useMemoFirebase(() => {
     return query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(20));
   }, [db]);
-  const { data: userList, isLoading: isUsersLoading } = useCollection(usersQuery);
+  const { data: rawUserList, isLoading: isUsersLoading } = useCollection(usersQuery);
+
+  // Filter out the blocked user from the list
+  const userList = useMemo(() => {
+    return (rawUserList || []).filter(u => u.id !== 'Guest_smu5Q' && u.username !== 'Guest_smu5Q');
+  }, [rawUserList]);
 
   // Fetch predictions for the SELECTED user
   const predictionsQuery = useMemoFirebase(() => {

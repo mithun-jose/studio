@@ -11,7 +11,7 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 export default function Leaderboard() {
   const db = useFirestore();
 
-  // Query to show top performers, including those with 0 points (everyone initialized correctly)
+  // Query to show top performers
   const leaderboardQuery = useMemoFirebase(() => {
     return query(
       collection(db, "users"),
@@ -20,7 +20,7 @@ export default function Leaderboard() {
     );
   }, [db]);
 
-  const { data: users, isLoading } = useCollection(leaderboardQuery);
+  const { data: rawUsers, isLoading } = useCollection(leaderboardQuery);
 
   if (isLoading) {
     return (
@@ -30,10 +30,10 @@ export default function Leaderboard() {
     );
   }
 
-  // Fallback to empty array if no users found yet
-  const rankings = users || [];
+  // Filter out the specific blocked user
+  const rankings = (rawUsers || []).filter(u => u.id !== 'Guest_smu5Q' && u.username !== 'Guest_smu5Q');
+  
   const totalPredictors = rankings.length;
-  // Count users who have an email field (registered vs anonymous guest)
   const registeredEmailsCount = rankings.filter(u => !!u.email).length;
 
   return (
