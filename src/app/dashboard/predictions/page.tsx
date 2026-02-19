@@ -11,6 +11,8 @@ import { collection, query, orderBy, doc, limit } from "firebase/firestore";
 import { format } from "date-fns";
 import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link";
 
 export default function PredictionsPage() {
   const { user, isUserLoading } = useUser();
