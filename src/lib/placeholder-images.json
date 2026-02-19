@@ -3,8 +3,8 @@
     {
       "id": "hero-stock",
       "description": "Primary stock image for the webapp",
-      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg",
-      "imageHint": "brand logo"
+      "imageUrl": "https://images.unsplash.com/photo-1675693303492-9a5bc898bf94?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjcmlja2V0JTIwc3RhZGl1bXxlbnwwfHx8fDE3NzE0NTYxMzF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cricket stadium"
     },
     {
       "id": "cricket-stadium",

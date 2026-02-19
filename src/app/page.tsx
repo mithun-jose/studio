@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -188,7 +187,7 @@ export default function LandingPage() {
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 relative overflow-hidden">
           <div className="absolute inset-0 z-0 flex items-center justify-center bg-muted/20">
-            <div className="relative w-full h-full max-w-4xl max-h-[600px] opacity-80">
+            <div className="relative w-full h-full max-w-4xl max-h-[600px] opacity-20">
               <Image
                 src={heroImage.imageUrl}
                 alt={heroImage.description}
