@@ -25,7 +25,7 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
 
   const menuItems = [
     { icon: Home, label: "Matches", href: "/dashboard" },
-    { icon: List, label: "My Predictions", href: "/dashboard/predictions" },
+    { icon: List, label: "Predictions", href: "/dashboard/predictions" },
     { icon: Award, label: "Leaderboard", href: "/dashboard/leaderboard" },
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   ];
