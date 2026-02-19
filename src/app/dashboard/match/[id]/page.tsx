@@ -106,6 +106,10 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
     const predictionId = `${effectiveUserId}_${match?.id}`;
     const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
+    // Rule: Super Eight matches award 3 points, others 2
+    const isSuperEight = match?.name.toLowerCase().includes("super 8") || match?.name.toLowerCase().includes("super eight");
+    const pointsToAward = isSuperEight ? 3 : 2;
+
     setDocumentNonBlocking(predictionRef, {
       id: predictionId,
       userId: effectiveUserId,
@@ -114,13 +118,13 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
       predictedWinner: prediction,
       predictionTime: new Date().toISOString(),
       isCorrect: null, // Pending evaluation
-      points: 2,
+      points: pointsToAward,
       aiBonus: false,
     }, { merge: true });
 
     toast({
       title: existingPrediction ? "Prediction Updated!" : "Prediction Submitted!",
-      description: `You've locked in ${prediction} for the ${user?.isAnonymous ? 'Universal Guest profile' : 'your profile'}.`,
+      description: `You've locked in ${prediction} for ${user?.isAnonymous ? 'the Universal Guest profile' : 'your profile'}. Potential points: ${pointsToAward}.`,
     });
   };
 
@@ -270,7 +274,8 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <CardContent>
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
                 <li>Predictions must be submitted at least <strong>1 hour before</strong> the match starts.</li>
-                <li>Correct winner prediction earns <strong>2 Blockbuster Points</strong>.</li>
+                <li>Standard matches earn <strong>2 points</strong>.</li>
+                <li><strong>Super Eight</strong> matches earn <strong>3 points</strong>.</li>
                 <li>Incorrect predictions earn <strong>0 points</strong>.</li>
               </ul>
             </CardContent>

@@ -168,15 +168,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return match?.matchEnded;
       });
 
+      let calculatedPoints = 0;
       const wins = completed.filter(pred => {
         const match = matches.find(m => m.id === pred.matchId);
         if (!match) return false;
         const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
         const actualWinner = getWinnerFromStatus(match.status, teamNames);
-        return pred.predictedWinner === actualWinner;
+        
+        const isCorrect = pred.predictedWinner === actualWinner;
+        if (isCorrect) {
+          // Rule: Super Eight matches award 3 points, others 2
+          const isSuperEight = match.name.toLowerCase().includes("super 8") || match.name.toLowerCase().includes("super eight");
+          calculatedPoints += isSuperEight ? 3 : 2;
+        }
+        return isCorrect;
       });
 
-      const calculatedPoints = wins.length * 2;
       const calculatedAccuracy = completed.length > 0 ? Math.round((wins.length / completed.length) * 100) : 0;
 
       const needsUpdate = (profile.totalPoints ?? -1) !== calculatedPoints || 

@@ -148,7 +148,7 @@
         },
         "points": {
           "type": "number",
-          "description": "Base points awarded for a correct prediction (default 2)."
+          "description": "Points awarded (2 for standard, 3 for Super Eight matches)."
         },
         "aiBonus": {
           "type": "boolean",

@@ -129,7 +129,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-bold">Earn Points</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            <p className="text-xs text-muted-foreground">Get 2 points for every correct winner predicted. Points update as soon as the match ends.</p>
+            <p className="text-xs text-muted-foreground">Get 2 points for most games, or <strong>3 points</strong> for Super Eight stage matches!</p>
           </CardContent>
         </Card>
         <Card className="bg-primary/5 border-primary/10 shadow-sm">
@@ -222,6 +222,10 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
     const predictionId = `${effectiveUserId}_${match.id}`;
     const predictionRef = doc(db, "users", effectiveUserId, "predictions", predictionId);
 
+    // Rule: Super Eight matches award 3 points, others 2
+    const isSuperEight = match.name.toLowerCase().includes("super 8") || match.name.toLowerCase().includes("super eight");
+    const pointsToAward = isSuperEight ? 3 : 2;
+
     setDocumentNonBlocking(predictionRef, {
       id: predictionId,
       userId: effectiveUserId,
@@ -230,12 +234,12 @@ function MatchCard({ match, predictedTeam, db, effectiveUserId }: { match: Match
       predictedWinner: teamName,
       predictionTime: new Date().toISOString(),
       isCorrect: null,
-      points: 2,
+      points: pointsToAward,
     }, { merge: true });
 
     toast({
       title: "Prediction Locked!",
-      description: `You've picked ${teamName} to win.`,
+      description: `You've picked ${teamName} to win. (Worth ${pointsToAward} points)`,
     });
   };
   
