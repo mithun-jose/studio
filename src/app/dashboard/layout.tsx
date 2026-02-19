@@ -52,7 +52,7 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
               className="object-contain p-1"
             />
           </div>
-          <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Oracle</span>
+          <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Blockbuster</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -218,7 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
           <Trophy className="h-12 w-12 text-primary animate-bounce" />
-          <p className="text-sm font-medium text-muted-foreground">Entering the Oracle...</p>
+          <p className="text-sm font-medium text-muted-foreground">Entering the Blockbuster...</p>
         </div>
       </div>
     );

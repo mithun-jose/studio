@@ -1,5 +1,5 @@
 
-# Cricket Oracle
+# Cricket Blockbuster
 
 Predict cricket match results and climb the global leaderboard using AI-powered insights.
 

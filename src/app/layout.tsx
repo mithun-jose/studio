@@ -5,7 +5,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Cricket Oracle - Predict & Conquer',
+  title: 'Cricket Blockbuster - Predict & Conquer',
   description: 'AI-powered cricket match predictions and fan leaderboard.',
   icons: {
     icon: 'https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg',

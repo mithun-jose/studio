@@ -270,7 +270,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
             <CardContent>
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
                 <li>Predictions must be submitted at least <strong>1 hour before</strong> the match starts.</li>
-                <li>Correct winner prediction earns <strong>2 Oracle Points</strong>.</li>
+                <li>Correct winner prediction earns <strong>2 Blockbuster Points</strong>.</li>
                 <li>Incorrect predictions earn <strong>0 points</strong>.</li>
               </ul>
             </CardContent>

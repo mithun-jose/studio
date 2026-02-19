@@ -69,7 +69,7 @@ export default function SettingsPage() {
       setIsSaving(false);
       toast({
         title: "Profile Updated",
-        description: "Your changes have been saved to the Oracle.",
+        description: "Your changes have been saved to the Blockbuster.",
       });
     }, 500);
   };
@@ -136,7 +136,7 @@ export default function SettingsPage() {
                 </Label>
                 <Input
                   id="username"
-                  placeholder="OracleFan123"
+                  placeholder="Predictor123"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   disabled={isAnonymous || isSaving}

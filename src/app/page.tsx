@@ -143,7 +143,7 @@ export default function LandingPage() {
       }
 
       toast({
-        title: "Welcome to the Oracle!",
+        title: "Welcome to the Blockbuster!",
         description: "You're now predicting as part of the Universal Guest community.",
       });
     } catch (error: any) {
@@ -178,7 +178,7 @@ export default function LandingPage() {
               className="object-contain p-1"
             />
           </div>
-          <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Oracle</span>
+          <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Blockbuster</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="/features">
@@ -216,7 +216,7 @@ export default function LandingPage() {
                     <span className="text-primary">Conquer the League.</span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-2xl leading-relaxed">
-                    Elevate your cricket experience. Use passwordless, secure email login or join the shared guest community to climb the leaderboard.
+                    Elevate your cricket experience with Cricket Blockbuster. Use passwordless, secure email login or join the shared guest community to climb the leaderboard.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -232,7 +232,7 @@ export default function LandingPage() {
                 <Card className="shadow-2xl border-primary/10 overflow-hidden bg-white/80 backdrop-blur-sm">
                   <CardHeader className="text-center pt-8">
                     <CardTitle className="text-2xl font-headline font-bold">
-                      {linkSent ? "Check Your Inbox" : "Join the Oracle"}
+                      {linkSent ? "Check Your Inbox" : "Join the Blockbuster"}
                     </CardTitle>
                     <CardDescription>
                       {linkSent 
@@ -328,11 +328,18 @@ export default function LandingPage() {
       <footer className="w-full border-t bg-white py-12">
         <div className="container px-4 md:px-6 mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Oracle</span>
+            <div className="relative h-6 w-10 overflow-hidden rounded-md bg-accent">
+              <Image 
+                src="https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg" 
+                alt="Blockbuster Logo" 
+                fill 
+                className="object-contain p-0.5"
+              />
+            </div>
+            <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Blockbuster</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Cricket Oracle Inc. All rights reserved. Data powered by CricAPI.
+            © 2024 Cricket Blockbuster Inc. All rights reserved. Data powered by CricAPI.
           </p>
           <div className="flex gap-4">
             <Link className="text-sm font-medium hover:text-primary underline-offset-4 hover:underline" href="#">

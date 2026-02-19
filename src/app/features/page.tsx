@@ -20,7 +20,7 @@ export default function FeaturesPage() {
               className="object-contain p-1"
             />
           </div>
-          <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Oracle</span>
+          <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Blockbuster</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link className="text-sm font-medium text-primary transition-colors" href="/features">
@@ -45,7 +45,7 @@ export default function FeaturesPage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
               <h1 className="text-4xl font-headline font-bold tracking-tighter sm:text-6xl text-primary">Master the Prediction Game</h1>
               <p className="max-w-[900px] text-muted-foreground md:text-xl lg:text-lg leading-relaxed">
-                Cricket Oracle provides you with professional tools to dominate your friend groups and leagues.
+                Cricket Blockbuster provides you with professional tools to dominate your friend groups and leagues.
               </p>
             </div>
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -58,7 +58,7 @@ export default function FeaturesPage() {
               </div>
               <div className="flex flex-col items-center space-y-4 p-8 bg-white rounded-3xl shadow-sm border border-primary/5 transition-all hover:shadow-xl hover:-translate-y-2">
                 <div className="p-4 bg-accent/20 rounded-2xl">
-                  <Zap className="h-10 w-10 text-primary" />
+                  < Zap className="h-10 w-10 text-primary" />
                 </div>
                 <h3 className="text-2xl font-headline font-bold text-center">AI Forecasting</h3>
                 <p className="text-center text-muted-foreground text-sm">Leverage Gemini-powered AI to analyze player stats and match conditions for winning insights.</p>
@@ -75,7 +75,7 @@ export default function FeaturesPage() {
                   <Trophy className="h-10 w-10 text-primary" />
                 </div>
                 <h3 className="text-2xl font-headline font-bold text-center">Seasonal Prizes</h3>
-                <p className="text-center text-muted-foreground text-sm">Win exclusive badges and top the annual leaderboard to be crowned the ultimate Cricket Oracle.</p>
+                <p className="text-center text-muted-foreground text-sm">Win exclusive badges and top the annual leaderboard to be crowned the ultimate Cricket Blockbuster.</p>
               </div>
             </div>
           </div>
@@ -86,11 +86,18 @@ export default function FeaturesPage() {
       <footer className="w-full border-t bg-white py-12">
         <div className="container px-4 md:px-6 mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Oracle</span>
+            <div className="relative h-6 w-10 overflow-hidden rounded-md bg-accent">
+              <Image 
+                src="https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg" 
+                alt="Blockbuster Logo" 
+                fill 
+                className="object-contain p-0.5"
+              />
+            </div>
+            <span className="font-headline font-bold text-xl tracking-tight text-primary">Cricket Blockbuster</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Cricket Oracle Inc. All rights reserved. Data powered by CricAPI.
+            © 2024 Cricket Blockbuster Inc. All rights reserved. Data powered by CricAPI.
           </p>
           <div className="flex gap-4">
             <Link className="text-sm font-medium hover:text-primary underline-offset-4 hover:underline" href="#">
