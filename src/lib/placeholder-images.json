@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "hero-stock",
+      "description": "Primary stock image for the webapp",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg",
+      "imageHint": "brand logo"
+    },
+    {
       "id": "cricket-stadium",
       "description": "Grand cricket stadium under lights",
       "imageUrl": "https://images.unsplash.com/photo-1730739463889-34c7279277a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjcmlja2V0JTIwc3RhZGl1bXxlbnwwfHx8fDE3NzA1NTQ4ODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
