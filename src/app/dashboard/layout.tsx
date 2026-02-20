@@ -204,10 +204,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Initialization: Ensure every logged-in user has a profile record
   useEffect(() => {
     // Only attempt to check/initialize once per session or until profile is found
+    // Crucially wait for isLoadingProfile to be false to know if profile exists
     if (user && !isUserLoading && !isLoadingProfile && !initializationPerformed.current && userDocRef) {
       async function ensureProfile() {
         if (!profile) {
           // Confirm missing status with a direct fetch before creating
+          // This avoids the "null during load" race condition
           const snap = await getDoc(userDocRef);
           if (!snap.exists()) {
             setDocumentNonBlocking(userDocRef, {
