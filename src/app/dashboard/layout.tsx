@@ -133,7 +133,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
 
   const userDocRef = useMemoFirebase(() => {
-    if (!effectiveUserId) return null;
+    if (!db || !effectiveUserId) return null;
     return doc(db, "users", effectiveUserId);
   }, [db, effectiveUserId]);
 
@@ -180,7 +180,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const isCorrect = pred.predictedWinner === actualWinner;
         if (isCorrect) {
           correctWinsCount++;
-          // Use centralized point value logic
           calculatedPoints += getMatchPointValue(match.name);
         }
       });
@@ -202,8 +201,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [profile, userDocRef, predictions, matches, isPredictionsLoading, isSeriesLoading]);
 
   // Initialization: Ensure every logged-in user or the shared guest has a profile
+  // CRITICAL: We wait until isLoadingProfile is FALSE and profile is NULL
+  // This confirms the document does NOT exist on the server before we create it.
   useEffect(() => {
-    if (user && !isUserLoading && profile === null && !isLoadingProfile && effectiveUserId) {
+    if (user && !isUserLoading && profile === null && isLoadingProfile === false && effectiveUserId) {
       const userRef = doc(db, "users", effectiveUserId);
       setDocumentNonBlocking(userRef, {
         id: effectiveUserId,

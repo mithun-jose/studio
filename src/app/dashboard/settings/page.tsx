@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { UserCircle, ShieldAlert, CheckCircle2, Loader2, Camera, Mail, User } from "lucide-react";
@@ -59,24 +58,24 @@ export default function SettingsPage() {
 
     setIsSaving(true);
     
-    // Use setDocumentNonBlocking with merge to ensure persistence even if doc state is weird
-    setDocumentNonBlocking(userDocRef, {
+    // Explicitly update existing document fields
+    updateDocumentNonBlocking(userDocRef, {
       username: formData.username,
       email: formData.email,
       avatarUrl: formData.avatarUrl,
-    }, { merge: true });
+    });
 
-    // Provide immediate feedback and reset saving state
+    // Provide immediate feedback
     setTimeout(() => {
       setIsSaving(false);
       toast({
         title: "Profile Updated",
         description: "Your changes have been saved to the Blockbuster.",
       });
-    }, 800);
+    }, 500);
   };
 
-  if (isUserLoading || isProfileLoading) {
+  if (isUserLoading || (isProfileLoading && !profile)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
