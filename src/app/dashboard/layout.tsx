@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, updateDocumentNonBlocking } from "@/firebase";
-import { doc, collection, query } from "firebase/firestore";
+import { doc, collection, query, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { fetchSeriesInfo, getWinnerFromStatus, getMatchPointValue, Match } from "@/lib/api";
@@ -200,24 +200,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, userDocRef, predictions, matches, isPredictionsLoading, isSeriesLoading]);
 
-  // Initialization: Ensure every logged-in user or the shared guest has a profile
-  // CRITICAL: We wait until isLoadingProfile is FALSE and profile is NULL
-  // This confirms the document does NOT exist on the server before we create it.
+  // Initialization: Ensure every logged-in user has a profile record
   useEffect(() => {
-    if (user && !isUserLoading && profile === null && isLoadingProfile === false && effectiveUserId) {
-      const userRef = doc(db, "users", effectiveUserId);
-      setDocumentNonBlocking(userRef, {
-        id: effectiveUserId,
-        username: user.isAnonymous 
-          ? `The Universal Guest` 
-          : (user.email?.split("@")[0] || "User"),
-        email: user.email || null,
-        totalPoints: 0,
-        accuracy: 0,
-        isSharedGuest: user.isAnonymous,
-      }, { merge: true });
+    // CRITICAL: We only attempt to "initialize" if the profile is DEFINITIVELY null (doesn't exist)
+    // and we have a valid reference to check against.
+    async function ensureProfile() {
+      if (user && !isUserLoading && profile === null && isLoadingProfile === false && effectiveUserId && userDocRef) {
+        // Double check with a direct fetch to avoid race conditions with the real-time hook
+        const snap = await getDoc(userDocRef);
+        if (!snap.exists()) {
+          setDocumentNonBlocking(userDocRef, {
+            id: effectiveUserId,
+            username: user.isAnonymous 
+              ? `The Universal Guest` 
+              : (user.email?.split("@")[0] || "User"),
+            email: user.email || null,
+            totalPoints: 0,
+            accuracy: 0,
+            isSharedGuest: user.isAnonymous,
+          }, { merge: true });
+        }
+      }
     }
-  }, [user, isUserLoading, profile, isLoadingProfile, db, effectiveUserId]);
+    ensureProfile();
+  }, [user, isUserLoading, profile, isLoadingProfile, userDocRef, effectiveUserId]);
 
   const handleLogout = async () => {
     await signOut(auth);

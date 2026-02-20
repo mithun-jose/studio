@@ -1,6 +1,6 @@
 'use client';
     
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -34,7 +34,7 @@ export interface UseDocResult<T> {
  *
  *
  * @template T Optional type for document data. Defaults to any.
- * @param {DocumentReference<DocumentData> | null | undefined} docRef -
+ * @param {DocumentReference<DocumentData> | null | undefined} memoizedDocRef -
  * The Firestore DocumentReference. Waits if null/undefined.
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
@@ -44,12 +44,26 @@ export function useDoc<T = any>(
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  // Initialize isLoading to true to prevent premature "not found" states
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  
+  // Track the reference to detect changes immediately in render
+  const lastRef = useRef<string | null>(null);
+  const currentRefPath = memoizedDocRef?.path || null;
+
+  // If the reference changed, we are definitely loading a new thing
+  if (currentRefPath !== lastRef.current) {
+    lastRef.current = currentRefPath;
+    if (currentRefPath) {
+      setIsLoading(true);
+      setData(null);
+    } else {
+      setIsLoading(false);
+      setData(null);
+    }
+  }
 
   useEffect(() => {
-    // If no ref is provided, we aren't loading anything specific yet
     if (!memoizedDocRef) {
       setData(null);
       setIsLoading(false);
@@ -66,7 +80,6 @@ export function useDoc<T = any>(
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          // Document does not exist
           setData(null);
         }
         setError(null);
@@ -82,13 +95,12 @@ export function useDoc<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // trigger global error propagation
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+  }, [memoizedDocRef]);
 
   return { data, isLoading, error };
 }
