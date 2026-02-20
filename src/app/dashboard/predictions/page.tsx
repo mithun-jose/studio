@@ -142,6 +142,7 @@ export default function PredictionsPage() {
       })
       .filter(pred => {
         if (!pred) return false;
+        // Logic: You see all your own picks, but only completed picks for others
         if (!isOwnProfile) return pred.matchEnded;
         return true;
       });
@@ -217,7 +218,10 @@ export default function PredictionsPage() {
       {!isViewingSelf && (
         <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-primary shadow-sm animate-in zoom-in-95 duration-300">
           <Info className="h-5 w-5 text-accent shrink-0" />
-          <p>This profile's points have been <strong>recalculated in real-time</strong>. Any discrepancies have been automatically corrected on the leaderboard.</p>
+          <p>
+            This profile's points have been <strong>recalculated in real-time</strong>. 
+            For transparency and fairness, you can only view predictions for matches that have <strong>already concluded</strong>.
+          </p>
         </div>
       )}
 
