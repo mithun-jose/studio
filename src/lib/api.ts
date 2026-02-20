@@ -1,4 +1,3 @@
-
 import { Firestore, doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 export interface Team {
@@ -121,4 +120,18 @@ export function getWinnerFromStatus(status: string, teamNames: string[]): string
   }
   
   return null;
+}
+
+/**
+ * Helper to determine if a match is a high-value game (Super 8 and beyond)
+ */
+export function getMatchPointValue(matchName: string): number {
+  if (!matchName) return 2;
+  const name = matchName.toLowerCase();
+  const isHighValue = name.includes("super 8") || 
+                      name.includes("super eight") || 
+                      name.includes("semi-final") || 
+                      name.includes("semi final") || 
+                      name.includes("final");
+  return isHighValue ? 3 : 2;
 }

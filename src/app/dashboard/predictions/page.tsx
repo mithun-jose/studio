@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc, limit } from "firebase/firestore";
 import { format } from "date-fns";
-import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
+import { fetchSeriesInfo, Match, getWinnerFromStatus, getMatchPointValue } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -85,6 +84,9 @@ export default function PredictionsPage() {
 
         const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
         const actualWinner = match.matchEnded ? getWinnerFromStatus(match.status, teamNames) : null;
+        
+        // Recalculate points based on current logic to ensure accuracy in display
+        const correctPoints = getMatchPointValue(match.name);
 
         return {
           ...pred,
@@ -92,7 +94,8 @@ export default function PredictionsPage() {
           matchStatus: match.status,
           matchStarted: match.matchStarted,
           matchEnded: match.matchEnded,
-          isLive: match.matchStarted && !match.matchEnded
+          isLive: match.matchStarted && !match.matchEnded,
+          currentPointValue: correctPoints
         };
       })
       .filter(pred => {
@@ -261,7 +264,7 @@ function PredictionRow({ pred }: { pred: any }) {
           <div className="flex flex-col items-center bg-muted/50 p-2 rounded-xl relative col-span-2 md:col-span-1 min-w-[90px] sm:min-w-[110px] border border-primary/5">
             <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Points</span>
             <span className="text-lg sm:text-xl font-black text-primary">
-              {isPending ? "---" : isWon ? `+${(pred.points || 2)}` : "+0"}
+              {isPending ? `(${pred.currentPointValue})` : isWon ? `+${pred.currentPointValue}` : "+0"}
             </span>
           </div>
         </div>

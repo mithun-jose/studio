@@ -11,21 +11,8 @@ import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, setDocumentNon
 import { doc, collection, query } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { fetchSeriesInfo, getWinnerFromStatus, Match } from "@/lib/api";
+import { fetchSeriesInfo, getWinnerFromStatus, getMatchPointValue, Match } from "@/lib/api";
 import Image from "next/image";
-
-/**
- * Helper to determine if a match is a high-value game (Super 8 and beyond)
- */
-function getMatchPointValue(matchName: string): number {
-  const name = matchName.toLowerCase();
-  const isHighValue = name.includes("super 8") || 
-                      name.includes("super eight") || 
-                      name.includes("semi-final") || 
-                      name.includes("semi final") || 
-                      name.includes("final");
-  return isHighValue ? 3 : 2;
-}
 
 /**
  * A sub-component to handle the Sidebar content so it can access the useSidebar hook
@@ -175,28 +162,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Lazy Point Sync Logic
   useEffect(() => {
     if (profile && userDocRef && predictions && matches.length > 0 && !isPredictionsLoading && !isSeriesLoading) {
-      const completed = predictions.filter(pred => {
+      let calculatedPoints = 0;
+      let correctWinsCount = 0;
+      
+      const completedPredictions = predictions.filter(pred => {
         const match = matches.find(m => m.id === pred.matchId);
         return match?.matchEnded;
       });
 
-      let calculatedPoints = 0;
-      const wins = completed.filter(pred => {
+      completedPredictions.forEach(pred => {
         const match = matches.find(m => m.id === pred.matchId);
-        if (!match) return false;
+        if (!match) return;
+
         const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
         const actualWinner = getWinnerFromStatus(match.status, teamNames);
         
         const isCorrect = pred.predictedWinner === actualWinner;
         if (isCorrect) {
-          // New Rule: Super Eight matches and beyond award 3 points, others 2
-          const pointsAwarded = getMatchPointValue(match.name);
-          calculatedPoints += pointsAwarded;
+          correctWinsCount++;
+          // Use centralized point value logic
+          calculatedPoints += getMatchPointValue(match.name);
         }
-        return isCorrect;
       });
 
-      const calculatedAccuracy = completed.length > 0 ? Math.round((wins.length / completed.length) * 100) : 0;
+      const calculatedAccuracy = completedPredictions.length > 0 
+        ? Math.round((correctWinsCount / completedPredictions.length) * 100) 
+        : 0;
 
       const needsUpdate = (profile.totalPoints ?? -1) !== calculatedPoints || 
                           (profile.accuracy ?? -1) !== calculatedAccuracy;

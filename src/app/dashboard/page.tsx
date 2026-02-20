@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { fetchSeriesInfo, Match, getWinnerFromStatus } from "@/lib/api";
+import { fetchSeriesInfo, Match, getWinnerFromStatus, getMatchPointValue } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,19 +17,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type FilterType = 'all' | 'live' | 'upcoming' | 'finished';
-
-/**
- * Helper to determine if a match is a high-value game (Super 8 and beyond)
- */
-function getMatchPointValue(matchName: string): number {
-  const name = matchName.toLowerCase();
-  const isHighValue = name.includes("super 8") || 
-                      name.includes("super eight") || 
-                      name.includes("semi-final") || 
-                      name.includes("semi final") || 
-                      name.includes("final");
-  return isHighValue ? 3 : 2;
-}
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
