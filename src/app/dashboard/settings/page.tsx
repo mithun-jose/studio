@@ -6,14 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 import { UserCircle, ShieldAlert, CheckCircle2, Loader2, Camera, Mail, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/firebase";
 
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
@@ -37,6 +34,7 @@ export default function SettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Synchronize form data with profile data once it loads
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -60,19 +58,22 @@ export default function SettingsPage() {
     if (!userDocRef) return;
 
     setIsSaving(true);
-    updateDocumentNonBlocking(userDocRef, {
+    
+    // Use setDocumentNonBlocking with merge to ensure persistence even if doc state is weird
+    setDocumentNonBlocking(userDocRef, {
       username: formData.username,
       email: formData.email,
       avatarUrl: formData.avatarUrl,
-    });
+    }, { merge: true });
 
+    // Provide immediate feedback and reset saving state
     setTimeout(() => {
       setIsSaving(false);
       toast({
         title: "Profile Updated",
         description: "Your changes have been saved to the Blockbuster.",
       });
-    }, 500);
+    }, 800);
   };
 
   if (isUserLoading || isProfileLoading) {
