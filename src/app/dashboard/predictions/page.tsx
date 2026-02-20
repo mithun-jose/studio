@@ -44,11 +44,11 @@ export default function PredictionsPage() {
 
   // Fetch available users for the selector
   const usersQuery = useMemoFirebase(() => {
-    return query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(20));
+    return query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(50));
   }, [db]);
   const { data: rawUserList, isLoading: isUsersLoading } = useCollection(usersQuery);
 
-  // Filter out the blocked user from the list
+  // Filter out blocked users
   const userList = useMemo(() => {
     return (rawUserList || []).filter(u => u.id !== 'Guest_smu5Q' && u.username !== 'Guest_smu5Q');
   }, [rawUserList]);
@@ -71,7 +71,35 @@ export default function PredictionsPage() {
   }, [db, selectedUserId]);
   const { data: selectedProfile } = useDoc(selectedUserRef);
 
-  // Process predictions: handle matching and privacy filtering
+  // Real-time calculation of points and accuracy to ensure UI correctness
+  const calculatedStats = useMemo(() => {
+    if (!rawPredictions || matches.length === 0) return { totalPoints: 0, accuracy: 0 };
+    
+    let total = 0;
+    let correct = 0;
+    let completed = 0;
+
+    rawPredictions.forEach(pred => {
+      const match = matches.find(m => m.id === pred.matchId);
+      if (!match || !match.matchEnded) return;
+
+      completed++;
+      const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
+      const actualWinner = getWinnerFromStatus(match.status, teamNames);
+      
+      if (pred.predictedWinner === actualWinner) {
+        correct++;
+        total += getMatchPointValue(match.name);
+      }
+    });
+
+    return {
+      totalPoints: total,
+      accuracy: completed > 0 ? Math.round((correct / completed) * 100) : 0
+    };
+  }, [rawPredictions, matches]);
+
+  // Process predictions for display
   const predictions = useMemo(() => {
     if (!rawPredictions || matches.length === 0) return [];
 
@@ -84,8 +112,6 @@ export default function PredictionsPage() {
 
         const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
         const actualWinner = match.matchEnded ? getWinnerFromStatus(match.status, teamNames) : null;
-        
-        // Recalculate points based on current logic to ensure accuracy in display
         const correctPoints = getMatchPointValue(match.name);
 
         return {
@@ -100,10 +126,7 @@ export default function PredictionsPage() {
       })
       .filter(pred => {
         if (!pred) return false;
-        // If not viewing own profile, only show completed matches
-        if (!isOwnProfile) {
-          return pred.matchEnded;
-        }
+        if (!isOwnProfile) return pred.matchEnded;
         return true;
       });
   }, [rawPredictions, matches, selectedUserId, effectiveUserId]);
@@ -129,7 +152,7 @@ export default function PredictionsPage() {
             <p className="text-muted-foreground">
               {isViewingSelf 
                 ? "Manage your active picks and track your performance history." 
-                : `Viewing match history for ${selectedProfile?.username || "another predictor"}.`}
+                : `Viewing live recalculated history for ${selectedProfile?.username || "another predictor"}.`}
             </p>
           </div>
 
@@ -164,13 +187,13 @@ export default function PredictionsPage() {
             <Trophy className="h-16 w-16" />
           </div>
           <div className="flex flex-col relative z-10">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Total Points</span>
-            <span className="text-xl sm:text-2xl font-black">{(selectedProfile?.totalPoints || 0).toLocaleString()}</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Recalculated Points</span>
+            <span className="text-xl sm:text-2xl font-black">{calculatedStats.totalPoints.toLocaleString()}</span>
           </div>
           <div className="h-10 w-px bg-white/20 hidden sm:block"></div>
           <div className="flex flex-col relative z-10">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Accuracy</span>
-            <span className="text-xl sm:text-2xl font-black">{selectedProfile?.accuracy || 0}%</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Live Accuracy</span>
+            <span className="text-xl sm:text-2xl font-black">{calculatedStats.accuracy}%</span>
           </div>
         </Card>
       </div>
@@ -178,7 +201,7 @@ export default function PredictionsPage() {
       {!isViewingSelf && (
         <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-primary shadow-sm animate-in zoom-in-95 duration-300">
           <Info className="h-5 w-5 text-accent shrink-0" />
-          <p>For privacy, only <span className="font-bold">completed match results</span> are visible for other predictors.</p>
+          <p>This profile's points have been <strong>recalculated in real-time</strong> using current series data to ensure maximum accuracy.</p>
         </div>
       )}
 

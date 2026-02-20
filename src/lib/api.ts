@@ -108,7 +108,7 @@ export function getWinnerFromStatus(status: string, teamNames: string[]): string
   const s = status.toLowerCase();
   
   // If match hasn't produced a winner yet or was abandoned
-  if (!s.includes('won') || s.includes('abandoned') || s.includes('no result')) {
+  if (!s.includes('won') || s.includes('abandoned') || s.includes('no result') || s.includes('tied')) {
     return null;
   }
   
@@ -128,10 +128,13 @@ export function getWinnerFromStatus(status: string, teamNames: string[]): string
 export function getMatchPointValue(matchName: string): number {
   if (!matchName) return 2;
   const name = matchName.toLowerCase();
+  
+  // "Super 8", "Super Eight", "Semi-Final", "Final"
   const isHighValue = name.includes("super 8") || 
                       name.includes("super eight") || 
                       name.includes("semi-final") || 
                       name.includes("semi final") || 
                       name.includes("final");
+                      
   return isHighValue ? 3 : 2;
 }
