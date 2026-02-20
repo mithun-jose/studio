@@ -44,11 +44,12 @@ export function useDoc<T = any>(
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  // Initialize isLoading to true if a reference is provided to prevent premature "not found" states
-  const [isLoading, setIsLoading] = useState<boolean>(!!memoizedDocRef);
+  // Initialize isLoading to true to prevent premature "not found" states
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // If no ref is provided, we aren't loading anything specific yet
     if (!memoizedDocRef) {
       setData(null);
       setIsLoading(false);

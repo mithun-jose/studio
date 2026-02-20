@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { UserCircle, ShieldAlert, CheckCircle2, Loader2, Camera, Mail, User } from "lucide-react";
@@ -33,16 +33,16 @@ export default function SettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Synchronize form data with profile data once it loads
+  // Synchronize form data with profile data once it definitively loads from DB
   useEffect(() => {
-    if (profile) {
+    if (profile && !isSaving) {
       setFormData({
         username: profile.username || "",
         email: profile.email || "",
         avatarUrl: profile.avatarUrl || "",
       });
     }
-  }, [profile]);
+  }, [profile, isSaving]);
 
   const handleSave = () => {
     if (isAnonymous) {
@@ -58,21 +58,21 @@ export default function SettingsPage() {
 
     setIsSaving(true);
     
-    // Explicitly update existing document fields
-    updateDocumentNonBlocking(userDocRef, {
+    // Using setDocumentNonBlocking with merge: true ensures persistence even if the doc exists
+    setDocumentNonBlocking(userDocRef, {
       username: formData.username,
       email: formData.email,
       avatarUrl: formData.avatarUrl,
-    });
+    }, { merge: true });
 
-    // Provide immediate feedback
+    // Provide immediate feedback and reset saving state after a delay
     setTimeout(() => {
       setIsSaving(false);
       toast({
         title: "Profile Updated",
         description: "Your changes have been saved to the Blockbuster.",
       });
-    }, 500);
+    }, 800);
   };
 
   if (isUserLoading || (isProfileLoading && !profile)) {
