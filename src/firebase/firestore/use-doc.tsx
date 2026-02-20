@@ -48,12 +48,13 @@ export function useDoc<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   
   // Track the reference to detect changes immediately in render
-  const lastRef = useRef<string | null>(null);
+  const lastRefPath = useRef<string | null>(null);
   const currentRefPath = memoizedDocRef?.path || null;
 
   // If the reference changed, we are definitely loading a new thing
-  if (currentRefPath !== lastRef.current) {
-    lastRef.current = currentRefPath;
+  if (currentRefPath !== lastRefPath.current) {
+    lastRefPath.current = currentRefPath;
+    // We update state during render to trigger an immediate loading state
     if (currentRefPath) {
       setIsLoading(true);
       setData(null);
@@ -71,6 +72,7 @@ export function useDoc<T = any>(
       return;
     }
 
+    // Ensure we are in loading state when effect starts
     setIsLoading(true);
     setError(null);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, UserCircle } from "lucide-react";
 import Link from "next/link";
@@ -122,6 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const db = useFirestore();
   const [matches, setMatches] = useState<Match[]>([]);
   const [isSeriesLoading, setIsSeriesLoading] = useState(true);
+  const initializationPerformed = useRef(false);
 
   // Redirect to landing if not authenticated
   useEffect(() => {
@@ -202,27 +203,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Initialization: Ensure every logged-in user has a profile record
   useEffect(() => {
-    // CRITICAL: We only attempt to "initialize" if the profile is DEFINITIVELY null (doesn't exist)
-    // and we have a valid reference to check against.
-    async function ensureProfile() {
-      if (user && !isUserLoading && profile === null && isLoadingProfile === false && effectiveUserId && userDocRef) {
-        // Double check with a direct fetch to avoid race conditions with the real-time hook
-        const snap = await getDoc(userDocRef);
-        if (!snap.exists()) {
-          setDocumentNonBlocking(userDocRef, {
-            id: effectiveUserId,
-            username: user.isAnonymous 
-              ? `The Universal Guest` 
-              : (user.email?.split("@")[0] || "User"),
-            email: user.email || null,
-            totalPoints: 0,
-            accuracy: 0,
-            isSharedGuest: user.isAnonymous,
-          }, { merge: true });
+    // Only attempt to check/initialize once per session or until profile is found
+    if (user && !isUserLoading && !isLoadingProfile && !initializationPerformed.current && userDocRef) {
+      async function ensureProfile() {
+        if (!profile) {
+          // Confirm missing status with a direct fetch before creating
+          const snap = await getDoc(userDocRef);
+          if (!snap.exists()) {
+            setDocumentNonBlocking(userDocRef, {
+              id: effectiveUserId,
+              username: user.isAnonymous 
+                ? `The Universal Guest` 
+                : (user.email?.split("@")[0] || "User"),
+              email: user.email || null,
+              totalPoints: 0,
+              accuracy: 0,
+              isSharedGuest: user.isAnonymous,
+            }, { merge: true });
+          }
         }
+        initializationPerformed.current = true;
       }
+      ensureProfile();
     }
-    ensureProfile();
   }, [user, isUserLoading, profile, isLoadingProfile, userDocRef, effectiveUserId]);
 
   const handleLogout = async () => {
