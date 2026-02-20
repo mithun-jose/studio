@@ -169,7 +169,7 @@ export default function PredictionsPage() {
             <p className="text-muted-foreground">
               {isViewingSelf 
                 ? "Manage your active picks and track your performance history." 
-                : `Viewing live recalculated history for ${selectedProfile?.username || "another predictor"}.`}
+                : `Viewing prediction history for ${selectedProfile?.username || "another predictor"}.`}
             </p>
           </div>
 
@@ -204,12 +204,12 @@ export default function PredictionsPage() {
             <Trophy className="h-16 w-16" />
           </div>
           <div className="flex flex-col relative z-10">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Live Points</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Total Points</span>
             <span className="text-xl sm:text-2xl font-black">{calculatedStats.totalPoints.toLocaleString()}</span>
           </div>
           <div className="h-10 w-px bg-white/20 hidden sm:block"></div>
           <div className="flex flex-col relative z-10">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Live Accuracy</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Accuracy</span>
             <span className="text-xl sm:text-2xl font-black">{calculatedStats.accuracy}%</span>
           </div>
         </Card>
@@ -219,8 +219,7 @@ export default function PredictionsPage() {
         <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-primary shadow-sm animate-in zoom-in-95 duration-300">
           <Info className="h-5 w-5 text-accent shrink-0" />
           <p>
-            This profile's points have been <strong>recalculated in real-time</strong>. 
-            For transparency and fairness, you can only view predictions for matches that have <strong>already concluded</strong>.
+            Because of privacy only completed match predictions are visible.
           </p>
         </div>
       )}
