@@ -30,12 +30,18 @@ service cloud.firestore {
       
       // Only the user can manage their own profile, OR any signed-in user can manage the universal guest
       allow create: if isOwner(userId) || isUniversalGuest(userId);
-      allow update: if isExistingOwner(userId) || isUniversalGuest(userId);
+      
+      // Update logic: 
+      // 1. Owner can update everything
+      // 2. Anyone signed in can update the universal guest
+      // 3. Anyone signed in can update ANY user's 'totalPoints' or 'accuracy' to keep the leaderboard accurate (Community Sync)
+      allow update: if isExistingOwner(userId) 
+                    || isUniversalGuest(userId)
+                    || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPoints', 'accuracy']));
+      
       allow delete: if isExistingOwner(userId);
 
       match /predictions/{predictionId} {
-        // Predictions are now public read to allow users to see each other's history
-        // The UI handles filtering for completed matches only when viewing others
         allow read: if true;
         allow list: if true;
         
@@ -46,9 +52,7 @@ service cloud.firestore {
     }
 
     match /cricketSeries/{seriesId} {
-      // Series data is public
       allow get, list: if true;
-      // Only signed-in users can trigger cache updates
       allow write: if isSignedIn();
 
       match /matches/{matchId} {

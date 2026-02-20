@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target, MailCheck } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target, MailCheck, Info } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 
@@ -40,8 +40,8 @@ export default function Leaderboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold text-primary">Hall of Fame</h1>
-          <p className="text-muted-foreground">Top predictors across the entire community (Guests & Pro)</p>
+          <h1 className="text-3xl font-headline font-bold text-primary">Global Leaderboard</h1>
+          <p className="text-muted-foreground">Top performers in the {rankings[0]?.username ? 'Cricket Blockbuster Series' : 'Series'}</p>
         </div>
         
         <div className="flex gap-4">
@@ -50,7 +50,7 @@ export default function Leaderboard() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Predictors</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Fans</span>
               <span className="text-lg font-black text-primary">
                 {totalPredictors}{totalPredictors >= 50 ? '+' : ''}
               </span>
@@ -71,6 +71,11 @@ export default function Leaderboard() {
         </div>
       </div>
 
+      <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex items-center gap-3 text-xs font-medium text-primary">
+        <Info className="h-4 w-4 shrink-0" />
+        <p>Ranking is based on Total Points. Points are awarded as: 2 for group matches, 3 for Super Eight matches & beyond. Accuracy is used as a tie-breaker.</p>
+      </div>
+
       {rankings.length === 0 ? (
         <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed border-primary/10">
           <Users className="h-12 w-12 text-primary/20 mx-auto mb-4" />
@@ -86,8 +91,8 @@ export default function Leaderboard() {
 
           <Card className="border-primary/5 shadow-xl">
             <CardHeader className="bg-primary/5 border-b border-primary/5">
-              <CardTitle className="text-xl font-bold text-primary">Global Rankings</CardTitle>
-              <CardDescription>Real-time leaderboard including guest seekers and pro predictors</CardDescription>
+              <CardTitle className="text-xl font-bold text-primary">Hall of Fame</CardTitle>
+              <CardDescription>Top 50 predictors sorted by performance</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -96,9 +101,9 @@ export default function Leaderboard() {
                     <tr className="text-left text-xs font-bold uppercase tracking-widest text-muted-foreground border-b border-primary/5">
                       <th className="px-6 py-4">Rank</th>
                       <th className="px-6 py-4">Predictor</th>
-                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Type</th>
                       <th className="px-6 py-4">Accuracy</th>
-                      <th className="px-6 py-4 text-right">Points</th>
+                      <th className="px-6 py-4 text-right">Total Points</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -110,7 +115,7 @@ export default function Leaderboard() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8 border border-primary/10">
-                              <AvatarImage src={`https://picsum.photos/seed/${user.id}/64/64`} />
+                              <AvatarImage src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/64/64`} />
                               <AvatarFallback>{user.username?.[0] || 'U'}</AvatarFallback>
                             </Avatar>
                             <span className="font-bold text-sm">{user.username || 'Anonymous Fan'}</span>
@@ -125,11 +130,11 @@ export default function Leaderboard() {
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant="outline" className="border-primary/20 text-[10px] font-bold">
-                            {user.accuracy ?? 0}% Acc
+                            {user.accuracy ?? 0}%
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <span className="font-bold text-primary">{(user.totalPoints ?? 0).toLocaleString()}</span>
+                          <span className="font-black text-primary text-lg">{(user.totalPoints ?? 0).toLocaleString()}</span>
                         </td>
                       </tr>
                     ))}
@@ -154,7 +159,7 @@ function TopPerformerCard({ user, rank }: { user: any, rank: number }) {
       <CardContent className="pt-8 flex flex-col items-center text-center">
         <div className="relative mb-4">
           <Avatar className={`h-20 w-20 border-4 ${isWinner ? 'border-accent shadow-lg shadow-accent/20' : 'border-primary/10'}`}>
-            <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
+            <AvatarImage src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100/100`} />
             <AvatarFallback>{user.username?.[0] || 'U'}</AvatarFallback>
           </Avatar>
           <div className={`absolute -bottom-2 -right-2 h-8 w-8 rounded-full flex items-center justify-center font-black text-xs ${isWinner ? 'bg-accent text-primary' : 'bg-primary text-white'}`}>
@@ -162,7 +167,7 @@ function TopPerformerCard({ user, rank }: { user: any, rank: number }) {
           </div>
         </div>
         <h3 className="text-xl font-headline font-bold text-primary mb-1 truncate max-w-full px-2">{user.username || 'Anonymous Fan'}</h3>
-        <p className="text-xs font-medium text-muted-foreground mb-4">{user.email ? 'BLOCKBUSTER ELITE' : 'GUEST SEEKER'}</p>
+        <p className="text-xs font-medium text-muted-foreground mb-4">{user.email ? 'PRO PREDICTOR' : 'GUEST'}</p>
         <div className="grid grid-cols-2 gap-4 w-full bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-primary/5">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Points</span>

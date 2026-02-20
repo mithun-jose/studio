@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
@@ -5,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle, Info, Users, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, doc, limit } from "firebase/firestore";
 import { format } from "date-fns";
 import { fetchSeriesInfo, Match, getWinnerFromStatus, getMatchPointValue } from "@/lib/api";
@@ -71,7 +72,7 @@ export default function PredictionsPage() {
   }, [db, selectedUserId]);
   const { data: selectedProfile } = useDoc(selectedUserRef);
 
-  // Real-time calculation of points and accuracy to ensure UI correctness
+  // Real-time calculation of points and accuracy
   const calculatedStats = useMemo(() => {
     if (!rawPredictions || matches.length === 0) return { totalPoints: 0, accuracy: 0 };
     
@@ -98,6 +99,21 @@ export default function PredictionsPage() {
       accuracy: completed > 0 ? Math.round((correct / completed) * 100) : 0
     };
   }, [rawPredictions, matches]);
+
+  // Community Sync Logic: If we view a profile and notice their points are wrong, we update them!
+  useEffect(() => {
+    if (selectedProfile && selectedUserRef && !isSeriesLoading && !isPredictionsLoading && matches.length > 0) {
+      const needsUpdate = (selectedProfile.totalPoints ?? -1) !== calculatedStats.totalPoints || 
+                          (selectedProfile.accuracy ?? -1) !== calculatedStats.accuracy;
+
+      if (needsUpdate) {
+        updateDocumentNonBlocking(selectedUserRef, {
+          totalPoints: calculatedStats.totalPoints,
+          accuracy: calculatedStats.accuracy,
+        });
+      }
+    }
+  }, [selectedProfile, selectedUserRef, calculatedStats, isSeriesLoading, isPredictionsLoading, matches]);
 
   // Process predictions for display
   const predictions = useMemo(() => {
@@ -187,7 +203,7 @@ export default function PredictionsPage() {
             <Trophy className="h-16 w-16" />
           </div>
           <div className="flex flex-col relative z-10">
-            <span className="text-[10px] font-bold text-white/50 uppercase">Recalculated Points</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase">Live Points</span>
             <span className="text-xl sm:text-2xl font-black">{calculatedStats.totalPoints.toLocaleString()}</span>
           </div>
           <div className="h-10 w-px bg-white/20 hidden sm:block"></div>
@@ -201,7 +217,7 @@ export default function PredictionsPage() {
       {!isViewingSelf && (
         <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-primary shadow-sm animate-in zoom-in-95 duration-300">
           <Info className="h-5 w-5 text-accent shrink-0" />
-          <p>This profile's points have been <strong>recalculated in real-time</strong> using current series data to ensure maximum accuracy.</p>
+          <p>This profile's points have been <strong>recalculated in real-time</strong>. Any discrepancies have been automatically corrected on the leaderboard.</p>
         </div>
       )}
 
