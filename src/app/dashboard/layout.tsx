@@ -14,10 +14,6 @@ import { Button } from "@/components/ui/button";
 import { fetchSeriesInfo, getWinnerFromStatus, getMatchPointValue, Match } from "@/lib/api";
 import Image from "next/image";
 
-/**
- * A sub-component to handle the Sidebar content so it can access the useSidebar hook
- * provided by the SidebarProvider.
- */
 function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any) {
   const pathname = usePathname();
   const { setOpenMobile, isMobile } = useSidebar();
@@ -124,7 +120,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isSeriesLoading, setIsSeriesLoading] = useState(true);
   const initializationPerformed = useRef(false);
 
-  // Redirect to landing if not authenticated
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push("/");
@@ -140,7 +135,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const { data: profile, isLoading: isLoadingProfile } = useDoc(userDocRef);
 
-  // Fetch matches for point calculation
   useEffect(() => {
     async function loadData() {
       const data = await fetchSeriesInfo(db);
@@ -152,7 +146,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     loadData();
   }, [db]);
 
-  // Fetch user predictions
   const predictionsQuery = useMemoFirebase(() => {
     if (!db || !effectiveUserId) return null;
     return query(collection(db, "users", effectiveUserId, "predictions"));
@@ -160,7 +153,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const { data: predictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
 
-  // Lazy Point Sync Logic
   useEffect(() => {
     if (profile && userDocRef && predictions && matches.length > 0 && !isPredictionsLoading && !isSeriesLoading) {
       let calculatedPoints = 0;
@@ -201,28 +193,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, userDocRef, predictions, matches, isPredictionsLoading, isSeriesLoading]);
 
-  // Initialization: Ensure every logged-in user has a profile record
+  // Initialization: Stabilized to prevent overwriting custom settings
   useEffect(() => {
-    // Only attempt to check/initialize once per session or until profile is found
-    // Crucially wait for isLoadingProfile to be false to know if profile exists
     if (user && !isUserLoading && !isLoadingProfile && !initializationPerformed.current && userDocRef) {
       async function ensureProfile() {
-        if (!profile) {
-          // Confirm missing status with a direct fetch before creating
-          // This avoids the "null during load" race condition
-          const snap = await getDoc(userDocRef);
-          if (!snap.exists()) {
-            setDocumentNonBlocking(userDocRef, {
-              id: effectiveUserId,
-              username: user.isAnonymous 
-                ? `The Universal Guest` 
-                : (user.email?.split("@")[0] || "User"),
-              email: user.email || null,
-              totalPoints: 0,
-              accuracy: 0,
-              isSharedGuest: user.isAnonymous,
-            }, { merge: true });
-          }
+        // We only attempt to initialize IF profile is definitively missing
+        // This direct fetch confirms it's not just a cache/loading issue
+        const snap = await getDoc(userDocRef);
+        if (!snap.exists()) {
+          setDocumentNonBlocking(userDocRef, {
+            id: effectiveUserId,
+            username: user.isAnonymous 
+              ? `The Universal Guest` 
+              : (user.email?.split("@")[0] || "User"),
+            email: user.email || null,
+            totalPoints: 0,
+            accuracy: 0,
+            isSharedGuest: user.isAnonymous,
+          }, { merge: true });
         }
         initializationPerformed.current = true;
       }

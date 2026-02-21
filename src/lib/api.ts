@@ -42,7 +42,7 @@ export interface SeriesInfoResponse {
 
 const CRICAPI_KEY = '6cbb4198-8e11-46e3-8dd5-f353458e68c1';
 const SERIES_ID = '0cdf6736-ad9b-4e95-a647-5ee3a99c5510';
-const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes (Optimized from 1 hour)
+const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes (Optimized for more real-time updates)
 
 export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse | null> {
   const cacheRef = doc(db, 'cricketSeries', SERIES_ID);
@@ -57,13 +57,11 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
 
       // If cache is fresh (less than 30 mins old), return it
       if (now.getTime() - lastUpdated.getTime() < CACHE_DURATION_MS) {
-        console.log('Serving from Firestore cache');
         return cachedData.rawResponse as SeriesInfoResponse;
       }
     }
 
     // 2. Fetch from External API
-    console.log('Cache stale or missing. Fetching from CricAPI...');
     const response = await fetch(
       `https://api.cricapi.com/v1/series_info?apikey=${CRICAPI_KEY}&id=${SERIES_ID}`
     );
@@ -72,7 +70,6 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
     const apiData: SeriesInfoResponse = await response.json();
     
     if (apiData.status !== 'success') {
-      // Fallback to cache even if stale if API fails (e.g. rate limit)
       if (cacheSnap.exists()) {
         return cacheSnap.data().rawResponse;
       }
@@ -107,12 +104,10 @@ export async function fetchMatchDetails(db: Firestore, matchId: string): Promise
 export function getWinnerFromStatus(status: string, teamNames: string[]): string | null {
   const s = status.toLowerCase();
   
-  // If match hasn't produced a winner yet or was abandoned
   if (!s.includes('won') || s.includes('abandoned') || s.includes('no result') || s.includes('tied')) {
     return null;
   }
   
-  // Check which team name appears in the status string
   for (const name of teamNames) {
     if (s.includes(name.toLowerCase())) {
       return name;
@@ -129,7 +124,6 @@ export function getMatchPointValue(matchName: string): number {
   if (!matchName) return 2;
   const name = matchName.toLowerCase();
   
-  // "Super 8", "Super Eight", "Semi-Final", "Final"
   const isHighValue = name.includes("super 8") || 
                       name.includes("super eight") || 
                       name.includes("semi-final") || 
