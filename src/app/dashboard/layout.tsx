@@ -118,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const db = useFirestore();
   const [matches, setMatches] = useState<Match[]>([]);
   const [isSeriesLoading, setIsSeriesLoading] = useState(true);
-  const initializationPerformed = useRef(false);
+  const initializedUserId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -153,32 +153,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const { data: predictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
 
+  // Community Sync & Accuracy Calculation Logic
   useEffect(() => {
     if (profile && userDocRef && predictions && matches.length > 0 && !isPredictionsLoading && !isSeriesLoading) {
       let calculatedPoints = 0;
       let correctWinsCount = 0;
+      let completedCount = 0;
       
-      const completedPredictions = predictions.filter(pred => {
+      predictions.forEach(pred => {
         const match = matches.find(m => m.id === pred.matchId);
-        return match?.matchEnded;
-      });
+        if (!match || !match.matchEnded) return;
 
-      completedPredictions.forEach(pred => {
-        const match = matches.find(m => m.id === pred.matchId);
-        if (!match) return;
-
+        completedCount++;
         const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
         const actualWinner = getWinnerFromStatus(match.status, teamNames);
         
-        const isCorrect = pred.predictedWinner === actualWinner;
-        if (isCorrect) {
+        if (pred.predictedWinner === actualWinner) {
           correctWinsCount++;
           calculatedPoints += getMatchPointValue(match.name);
         }
       });
 
-      const calculatedAccuracy = completedPredictions.length > 0 
-        ? Math.round((correctWinsCount / completedPredictions.length) * 100) 
+      const calculatedAccuracy = completedCount > 0 
+        ? Math.round((correctWinsCount / completedCount) * 100) 
         : 0;
 
       const needsUpdate = (profile.totalPoints ?? -1) !== calculatedPoints || 
@@ -193,12 +190,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, userDocRef, predictions, matches, isPredictionsLoading, isSeriesLoading]);
 
-  // Initialization: Stabilized to prevent overwriting custom settings
+  // Refined Initialization: Wait for definitive missing status before setup
   useEffect(() => {
-    if (user && !isUserLoading && !isLoadingProfile && !initializationPerformed.current && userDocRef) {
+    if (user && !isUserLoading && !isLoadingProfile && initializedUserId.current !== effectiveUserId && userDocRef) {
       async function ensureProfile() {
-        // We only attempt to initialize IF profile is definitively missing
-        // This direct fetch confirms it's not just a cache/loading issue
+        // Direct fetch to confirm absence before writing defaults
         const snap = await getDoc(userDocRef);
         if (!snap.exists()) {
           setDocumentNonBlocking(userDocRef, {
@@ -212,11 +208,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             isSharedGuest: user.isAnonymous,
           }, { merge: true });
         }
-        initializationPerformed.current = true;
+        initializedUserId.current = effectiveUserId;
       }
       ensureProfile();
     }
-  }, [user, isUserLoading, profile, isLoadingProfile, userDocRef, effectiveUserId]);
+  }, [user, isUserLoading, isLoadingProfile, userDocRef, effectiveUserId]);
 
   const handleLogout = async () => {
     await signOut(auth);

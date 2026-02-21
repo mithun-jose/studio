@@ -33,7 +33,7 @@ export default function SettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Synchronize form data with profile data once it definitively loads from DB
+  // Synchronize form data only when profile is definitively loaded and not currently saving
   useEffect(() => {
     if (profile && !isSaving) {
       setFormData({
@@ -58,21 +58,21 @@ export default function SettingsPage() {
 
     setIsSaving(true);
     
-    // Using setDocumentNonBlocking with merge: true ensures persistence even if the doc exists
+    // Explicitly merge to ensure only edited fields are updated without clearing history
     setDocumentNonBlocking(userDocRef, {
       username: formData.username,
       email: formData.email,
       avatarUrl: formData.avatarUrl,
     }, { merge: true });
 
-    // Provide immediate feedback and reset saving state after a delay
+    // Provide feedback and reset state
     setTimeout(() => {
       setIsSaving(false);
       toast({
         title: "Profile Updated",
-        description: "Your changes have been saved to the Blockbuster.",
+        description: "Your changes have been saved successfully.",
       });
-    }, 800);
+    }, 1000);
   };
 
   if (isUserLoading || (isProfileLoading && !profile)) {
@@ -93,7 +93,7 @@ export default function SettingsPage() {
       {isAnonymous && (
         <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-destructive shadow-sm">
           <ShieldAlert className="h-5 w-5 shrink-0" />
-          <p>You are using the <span className="font-bold">Universal Guest</span> account. Some settings are restricted for non-registered users.</p>
+          <p>You are using the <span className="font-bold">Universal Guest</span> account. Settings are locked for non-registered users.</p>
         </div>
       )}
 
@@ -104,7 +104,7 @@ export default function SettingsPage() {
               <UserCircle className="h-5 w-5 text-accent" />
               Public Profile
             </CardTitle>
-            <CardDescription>This information will be visible to other predictors on the leaderboard.</CardDescription>
+            <CardDescription>This information is visible to other predictors on the leaderboard.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-6 pb-6 border-b border-primary/5">
@@ -126,7 +126,6 @@ export default function SettingsPage() {
                   disabled={isAnonymous || isSaving}
                   className="bg-muted/30 border-none h-11"
                 />
-                <p className="text-[10px] text-muted-foreground">Recommended: Square image URL (Unsplash, Picsum, etc.)</p>
               </div>
             </div>
 
@@ -137,7 +136,7 @@ export default function SettingsPage() {
                 </Label>
                 <Input
                   id="username"
-                  placeholder="Predictor123"
+                  placeholder="Predictor Name"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   disabled={isAnonymous || isSaving}
@@ -151,7 +150,7 @@ export default function SettingsPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="fan@cricket.com"
+                  placeholder="email@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={isAnonymous || isSaving}
@@ -162,7 +161,7 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="bg-primary/5 border-t border-primary/5 py-4 flex justify-between items-center">
             <p className="text-xs text-muted-foreground italic">
-              {isAnonymous ? "Limited customization for guests" : "Changes are reflected instantly across the platform"}
+              {isAnonymous ? "Sign in with email to customize" : "Settings persist across all your sessions"}
             </p>
             <Button 
               onClick={handleSave} 

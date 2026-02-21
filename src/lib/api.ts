@@ -118,7 +118,7 @@ export function getWinnerFromStatus(status: string, teamNames: string[]): string
 }
 
 /**
- * Helper to determine if a match is a high-value game (Super 8 and beyond)
+ * Centralized point logic: Award 3 points for high-value matches (Super 8, Finals, etc.)
  */
 export function getMatchPointValue(matchName: string): number {
   if (!matchName) return 2;
