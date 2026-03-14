@@ -48,6 +48,8 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
   const cacheRef = doc(db, 'cricketSeries', SERIES_ID);
 
   try {
+    let resultData: SeriesInfoResponse | null = null;
+    
     // 1. Check Firestore Cache
     const cacheSnap = await getDoc(cacheRef);
     if (cacheSnap.exists()) {
@@ -57,34 +59,54 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
 
       // If cache is fresh (less than 30 mins old), return it
       if (now.getTime() - lastUpdated.getTime() < CACHE_DURATION_MS) {
-        return cachedData.rawResponse as SeriesInfoResponse;
+        resultData = cachedData.rawResponse as SeriesInfoResponse;
       }
     }
 
-    // 2. Fetch from External API
-    const response = await fetch(
-      `https://api.cricapi.com/v1/series_info?apikey=${CRICAPI_KEY}&id=${SERIES_ID}`
-    );
-    if (!response.ok) throw new Error('Failed to fetch series data from API');
-    
-    const apiData: SeriesInfoResponse = await response.json();
-    
-    if (apiData.status !== 'success') {
-      if (cacheSnap.exists()) {
-        return cacheSnap.data().rawResponse;
+    if (!resultData) {
+      // 2. Fetch from External API
+      const response = await fetch(
+        `https://api.cricapi.com/v1/series_info?apikey=${CRICAPI_KEY}&id=${SERIES_ID}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch series data from API');
+      
+      const apiData: SeriesInfoResponse = await response.json();
+      
+      if (apiData.status !== 'success') {
+        if (cacheSnap.exists()) {
+          resultData = cacheSnap.data().rawResponse;
+        } else {
+          throw new Error('API returned failure status');
+        }
+      } else {
+        resultData = apiData;
+        // 3. Update Firestore Cache
+        setDoc(cacheRef, {
+          id: SERIES_ID,
+          name: apiData.data.info.name,
+          lastUpdated: serverTimestamp(),
+          rawResponse: apiData
+        }, { merge: true });
       }
-      throw new Error('API returned failure status');
     }
 
-    // 3. Update Firestore Cache
-    setDoc(cacheRef, {
-      id: SERIES_ID,
-      name: apiData.data.info.name,
-      lastUpdated: serverTimestamp(),
-      rawResponse: apiData
-    }, { merge: true });
+    // Apply Overrides for the Final match to ensure points are calculated correctly
+    if (resultData && resultData.data && resultData.data.matchList) {
+      resultData.data.matchList = resultData.data.matchList.map(m => {
+        // Specifically target the Final match (and exclude semi-finals)
+        if (m.name.toLowerCase().includes("final") && !m.name.toLowerCase().includes("semi")) {
+          return {
+            ...m,
+            status: "India won by 96 runs",
+            matchEnded: true,
+            matchStarted: true
+          };
+        }
+        return m;
+      });
+    }
 
-    return apiData;
+    return resultData;
 
   } catch (error) {
     console.error('API Error:', error);
