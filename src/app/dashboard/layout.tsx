@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, UserCircle } from "lucide-react";
+import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, UserCircle, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +23,7 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
     { icon: List, label: "Predictions", href: "/dashboard/predictions" },
     { icon: Award, label: "Leaderboard", href: "/dashboard/leaderboard" },
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+    { icon: BookOpen, label: "User Guide", href: "/guide" },
   ];
 
   const closeMobile = () => {

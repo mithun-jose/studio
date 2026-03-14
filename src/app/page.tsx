@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle, AlertTriangle } from "lucide-react";
+import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle, AlertTriangle, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -181,6 +180,9 @@ export default function LandingPage() {
           <span className="font-headline font-bold text-2xl tracking-tight text-primary">Cricket Blockbuster</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
+          <Link className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1.5" href="/guide">
+            <BookOpen className="h-4 w-4" /> User Guide
+          </Link>
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="/features">
             Features
           </Link>
@@ -219,10 +221,15 @@ export default function LandingPage() {
                     Elevate your cricket experience with Cricket Blockbuster. Use passwordless, secure email login or join the shared guest community to climb the leaderboard.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <div className="flex flex-col gap-4 min-[400px]:flex-row">
                   <Link href="#auth">
-                    <Button size="lg" className="px-8 text-lg font-semibold shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                    <Button size="lg" className="px-8 text-lg font-semibold shadow-lg shadow-primary/20 hover:scale-105 transition-transform w-full sm:w-auto">
                       Start Predicting Now <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link href="/guide">
+                    <Button variant="outline" size="lg" className="px-8 text-lg font-semibold bg-white/50 w-full sm:w-auto">
+                      How it Works
                     </Button>
                   </Link>
                 </div>
