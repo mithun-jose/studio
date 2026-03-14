@@ -90,9 +90,17 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
       }
     }
 
-    // Apply Overrides for the Final match to ensure points are calculated correctly
+    // Apply Global Transformations and Overrides
     if (resultData && resultData.data && resultData.data.matchList) {
       resultData.data.matchList = resultData.data.matchList.map(m => {
+        // Fix Team Shortnames (e.g., RCBW -> RCB)
+        if (m.teamInfo) {
+          m.teamInfo = m.teamInfo.map(t => ({
+            ...t,
+            shortname: t.shortname === "RCBW" ? "RCB" : t.shortname
+          }));
+        }
+
         // Specifically target the Final match (and exclude semi-finals)
         if (m.name.toLowerCase().includes("final") && !m.name.toLowerCase().includes("semi")) {
           return {
