@@ -76,11 +76,11 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
         playerStatistics: "Team 1 and Team 2 are evenly matched in recent head-to-head records.",
       });
       setAiForecast(result);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("AI Forecast Error:", error);
       toast({
         title: "AI Analysis Failed",
-        description: "Could not generate forecast. Please try again.",
+        description: error.message || "The analyst is currently offline. Please ensure your GEMINI_API_KEY is configured correctly in App Hosting.",
         variant: "destructive",
       });
     } finally {
