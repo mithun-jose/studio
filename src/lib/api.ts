@@ -41,7 +41,7 @@ export interface SeriesInfoResponse {
 }
 
 const CRICAPI_KEY = '6cbb4198-8e11-46e3-8dd5-f353458e68c1';
-const SERIES_ID = '0cdf6736-ad9b-4e95-a647-5ee3a99c5510';
+const SERIES_ID = '87c62aac-bc3c-4738-ab93-19da0690488f';
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes (Optimized for more real-time updates)
 
 export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse | null> {
