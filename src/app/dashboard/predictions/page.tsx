@@ -4,7 +4,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle, Info, Users, UserCircle } from "lucide-react";
+import { History, CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Loader2, PlayCircle, Info, Users, UserCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, doc, limit } from "firebase/firestore";
@@ -129,6 +129,8 @@ export default function PredictionsPage() {
         const teamNames = match.teamInfo?.map(t => t.name) || match.teams || [];
         const actualWinner = match.matchEnded ? getWinnerFromStatus(match.status, teamNames) : null;
         const correctPoints = getMatchPointValue(match.name);
+        
+        const matchDate = match.dateTimeGMT.endsWith('Z') ? match.dateTimeGMT : `${match.dateTimeGMT.replace(' ', 'T')}Z`;
 
         return {
           ...pred,
@@ -137,7 +139,8 @@ export default function PredictionsPage() {
           matchStarted: match.matchStarted,
           matchEnded: match.matchEnded,
           isLive: match.matchStarted && !match.matchEnded,
-          currentPointValue: correctPoints
+          currentPointValue: correctPoints,
+          matchStartTime: new Date(matchDate).getTime()
         };
       })
       .filter(pred => {
@@ -145,8 +148,26 @@ export default function PredictionsPage() {
         // Logic: You see all your own picks, but only completed picks for others
         if (!isOwnProfile) return pred.matchEnded;
         return true;
-      });
+      })
+      .sort((a, b) => (b as any).matchStartTime - (a as any).matchStartTime); // Sort by match time descending
   }, [rawPredictions, matches, selectedUserId, effectiveUserId]);
+
+  // Group sorted predictions by date
+  const groupedPredictions = useMemo(() => {
+    const groups: { date: string; items: any[] }[] = [];
+    
+    predictions.forEach(p => {
+      const dateLabel = format((p as any).matchStartTime, "EEEE, MMMM do");
+      let group = groups.find(g => g.date === dateLabel);
+      if (!group) {
+        group = { date: dateLabel, items: [] };
+        groups.push(group);
+      }
+      group.items.push(p);
+    });
+    
+    return groups;
+  }, [predictions]);
 
   if (isUserLoading || isSeriesLoading || isUsersLoading) {
     return (
@@ -229,8 +250,8 @@ export default function PredictionsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
         </div>
       ) : (
-        <div className="grid gap-4">
-          {predictions.length === 0 ? (
+        <div className="space-y-10">
+          {groupedPredictions.length === 0 ? (
             <div className="text-center py-24 bg-muted/20 rounded-3xl border-2 border-dashed border-primary/10">
               <Trophy className="h-12 w-12 text-primary/20 mx-auto mb-4" />
               <p className="text-muted-foreground font-medium">No visible predictions found for this user.</p>
@@ -241,8 +262,18 @@ export default function PredictionsPage() {
               )}
             </div>
           ) : (
-            predictions.map((pred) => (
-              <PredictionRow key={pred.id} pred={pred} />
+            groupedPredictions.map((group) => (
+              <div key={group.date} className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest bg-primary/5 px-4 py-2 rounded-full w-fit">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {group.date}
+                </div>
+                <div className="grid gap-4">
+                  {group.items.map((pred) => (
+                    <PredictionRow key={pred.id} pred={pred} />
+                  ))}
+                </div>
+              </div>
             ))
           )}
         </div>
@@ -276,9 +307,9 @@ function PredictionRow({ pred }: { pred: any }) {
               {pred.matchName || "Cricket Match"}
             </h3>
             <div className="flex items-center gap-2 text-[10px] sm:text-xs text-muted-foreground mt-1">
-              <History className="h-3 w-3 shrink-0" /> 
+              <Clock className="h-3 w-3 shrink-0" /> 
               <span className="truncate">
-                {format(new Date(pred.predictionTime), "MMM d, h:mm a")}
+                {format(new Date(pred.matchStartTime), "h:mm a")} (Match Start)
               </span>
             </div>
           </div>
