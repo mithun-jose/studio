@@ -148,16 +148,14 @@ export function getWinnerFromStatus(status: string, teamNames: string[]): string
 }
 
 /**
- * Centralized point logic: Award 3 points for high-value matches (Super 8, Finals, etc.)
+ * Centralized point logic: Award 3 points for high-value matches (Eliminator, Qualifier, Final)
  */
 export function getMatchPointValue(matchName: string): number {
   if (!matchName) return 2;
   const name = matchName.toLowerCase();
   
-  const isHighValue = name.includes("super 8") || 
-                      name.includes("super eight") || 
-                      name.includes("semi-final") || 
-                      name.includes("semi final") || 
+  const isHighValue = name.includes("eliminator") || 
+                      name.includes("qualifier") || 
                       name.includes("final");
                       
   return isHighValue ? 3 : 2;

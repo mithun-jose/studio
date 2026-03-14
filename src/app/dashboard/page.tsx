@@ -128,7 +128,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-bold">Earn Points</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            <p className="text-xs text-muted-foreground">Get 2 points for group games, or <strong>3 points</strong> for Super Eight and beyond!</p>
+            <p className="text-xs text-muted-foreground">Get 2 points for group games, or <strong>3 points</strong> for Eliminators, Qualifiers & Final!</p>
           </CardContent>
         </Card>
         <Card className="bg-primary/5 border-primary/10 shadow-sm">

@@ -19,14 +19,12 @@ import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 /**
- * Helper to determine if a match is a high-value game (Super 8 and beyond)
+ * Helper to determine if a match is a high-value game (Eliminator, Qualifier, Final)
  */
 function getMatchPointValue(matchName: string): number {
   const name = matchName.toLowerCase();
-  const isHighValue = name.includes("super 8") || 
-                      name.includes("super eight") || 
-                      name.includes("semi-final") || 
-                      name.includes("semi final") || 
+  const isHighValue = name.includes("eliminator") || 
+                      name.includes("qualifier") || 
                       name.includes("final");
   return isHighValue ? 3 : 2;
 }
@@ -287,7 +285,7 @@ export default function MatchDetails({ params }: { params: Promise<{ id: string 
               <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
                 <li>Predictions must be submitted at least <strong>1 hour before</strong> the match starts.</li>
                 <li>Standard group stage matches earn <strong>2 points</strong>.</li>
-                <li><strong>Super Eight, Semi-Finals, and Finals</strong> earn <strong>3 points</strong>.</li>
+                <li><strong>Eliminators, Qualifiers, and Finals</strong> earn <strong>3 points</strong>.</li>
                 <li>Incorrect predictions earn <strong>0 points</strong>.</li>
               </ul>
             </CardContent>

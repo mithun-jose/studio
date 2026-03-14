@@ -146,11 +146,11 @@ export default function UserGuidePage() {
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
                       <span className="text-2xl font-black text-primary">2 PTS</span>
-                      <p className="text-xs font-bold text-muted-foreground uppercase mt-1">Group Stage Matches</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase mt-1">Standard Matches</p>
                     </div>
                     <div className="bg-accent/10 p-4 rounded-2xl border border-accent/20">
                       <span className="text-2xl font-black text-primary">3 PTS</span>
-                      <p className="text-xs font-bold text-muted-foreground uppercase mt-1">Super 8, Semis & Finals</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase mt-1">Eliminators, Qualifiers & Final</p>
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground italic">
