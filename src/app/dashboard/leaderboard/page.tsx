@@ -4,14 +4,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target, MailCheck, Info } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, Medal, Loader2, Users, Target, MailCheck, Info, Heart } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 export default function Leaderboard() {
   const db = useFirestore();
 
-  // Query to show top performers
   const leaderboardQuery = useMemoFirebase(() => {
     return query(
       collection(db, "users"),
@@ -30,9 +30,7 @@ export default function Leaderboard() {
     );
   }
 
-  // Filter out the specific blocked user
-  const rankings = (rawUsers || []).filter(u => u.id !== 'Guest_smu5Q' && u.username !== 'Guest_smu5Q');
-  
+  const rankings = rawUsers || [];
   const totalPredictors = rankings.length;
   const registeredEmailsCount = rankings.filter(u => !!u.email).length;
 
@@ -41,7 +39,7 @@ export default function Leaderboard() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-headline font-bold text-primary">Global Leaderboard</h1>
-          <p className="text-muted-foreground">Top performers in the {rankings[0]?.username ? 'Cricket Blockbuster Series' : 'Series'}</p>
+          <p className="text-muted-foreground">Top performers in the Cricket Blockbuster Series</p>
         </div>
         
         <div className="flex gap-4">
@@ -73,7 +71,7 @@ export default function Leaderboard() {
 
       <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex items-center gap-3 text-xs font-medium text-primary">
         <Info className="h-4 w-4 shrink-0" />
-        <p>Ranking is based on Total Points. Points are awarded as: 2 for group matches, 3 for Super Eight matches & beyond. Accuracy is used as a tie-breaker.</p>
+        <p>Ranking is based on Total Points. Accuracy is used as a tie-breaker. Guest users share the "Universal Guest" community score.</p>
       </div>
 
       {rankings.length === 0 ? (
@@ -92,7 +90,7 @@ export default function Leaderboard() {
           <Card className="border-primary/5 shadow-xl">
             <CardHeader className="bg-primary/5 border-b border-primary/5">
               <CardTitle className="text-xl font-bold text-primary">Hall of Fame</CardTitle>
-              <CardDescription>Top 50 predictors sorted by performance</CardDescription>
+              <CardDescription>Top predictors sorted by performance</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -107,37 +105,54 @@ export default function Leaderboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rankings.map((user, idx) => (
-                      <tr key={user.id} className="border-b border-primary/5 hover:bg-primary/5 transition-colors group">
-                        <td className="px-6 py-4">
-                          <span className="font-headline font-black text-lg text-muted-foreground/30 group-hover:text-primary transition-colors">#{idx + 1}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8 border border-primary/10">
-                              <AvatarImage src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/64/64`} />
-                              <AvatarFallback>{user.username?.[0] || 'U'}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-bold text-sm">{user.username || 'Anonymous Fan'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {user.email ? (
-                            <Badge variant="secondary" className="bg-accent/10 text-accent-foreground text-[9px] font-bold">PRO</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[9px] font-bold">GUEST</Badge>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge variant="outline" className="border-primary/20 text-[10px] font-bold">
-                            {user.accuracy ?? 0}%
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="font-black text-primary text-lg">{(user.totalPoints ?? 0).toLocaleString()}</span>
-                        </td>
-                      </tr>
-                    ))}
+                    {rankings.map((user, idx) => {
+                      const isUniversalGuest = user.id === 'universal_guest';
+                      return (
+                        <tr key={user.id} className={cn(
+                          "border-b border-primary/5 hover:bg-primary/5 transition-colors group",
+                          isUniversalGuest && "bg-accent/5 hover:bg-accent/10"
+                        )}>
+                          <td className="px-6 py-4">
+                            <span className="font-headline font-black text-lg text-muted-foreground/30 group-hover:text-primary transition-colors">#{idx + 1}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className={cn(
+                                "h-8 w-8 border border-primary/10",
+                                isUniversalGuest && "border-accent shadow-sm"
+                              )}>
+                                <AvatarImage 
+                                  src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/64/64`} 
+                                  className={isUniversalGuest ? "object-contain p-1" : ""}
+                                />
+                                <AvatarFallback>{user.username?.[0] || 'U'}</AvatarFallback>
+                              </Avatar>
+                              <span className={cn("font-bold text-sm", isUniversalGuest && "text-primary")}>
+                                {user.username || 'Anonymous Fan'}
+                                {isUniversalGuest && <Heart className="inline-block ml-1 h-3 w-3 text-accent fill-accent" />}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {isUniversalGuest ? (
+                              <Badge variant="default" className="bg-accent text-primary text-[9px] font-black tracking-tighter">COMMUNITY</Badge>
+                            ) : user.email ? (
+                              <Badge variant="secondary" className="bg-accent/10 text-accent-foreground text-[9px] font-bold">PRO</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[9px] font-bold">GUEST</Badge>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant="outline" className="border-primary/20 text-[10px] font-bold">
+                              {user.accuracy ?? 0}%
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="font-black text-primary text-lg">{(user.totalPoints ?? 0).toLocaleString()}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -151,23 +166,37 @@ export default function Leaderboard() {
 
 function TopPerformerCard({ user, rank }: { user: any, rank: number }) {
   const isWinner = rank === 1;
+  const isUniversalGuest = user.id === 'universal_guest';
   return (
-    <Card className={`relative overflow-hidden border-2 transition-all hover:-translate-y-2 hover:shadow-2xl ${isWinner ? 'border-accent bg-accent/5' : 'border-primary/5'}`}>
+    <Card className={cn(
+      "relative overflow-hidden border-2 transition-all hover:-translate-y-2 hover:shadow-2xl",
+      isWinner ? 'border-accent bg-accent/5' : isUniversalGuest ? 'border-accent/30 bg-accent/5' : 'border-primary/5'
+    )}>
       <div className={`absolute top-0 right-0 p-4 ${isWinner ? 'text-accent' : 'text-primary/10'}`}>
         <Medal className="h-12 w-12" />
       </div>
       <CardContent className="pt-8 flex flex-col items-center text-center">
         <div className="relative mb-4">
-          <Avatar className={`h-20 w-20 border-4 ${isWinner ? 'border-accent shadow-lg shadow-accent/20' : 'border-primary/10'}`}>
-            <AvatarImage src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100/100`} />
+          <Avatar className={cn(
+            "h-20 w-20 border-4",
+            isWinner ? 'border-accent shadow-lg shadow-accent/20' : isUniversalGuest ? 'border-accent' : 'border-primary/10'
+          )}>
+            <AvatarImage 
+              src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100/100`} 
+              className={isUniversalGuest ? "object-contain p-2" : ""}
+            />
             <AvatarFallback>{user.username?.[0] || 'U'}</AvatarFallback>
           </Avatar>
           <div className={`absolute -bottom-2 -right-2 h-8 w-8 rounded-full flex items-center justify-center font-black text-xs ${isWinner ? 'bg-accent text-primary' : 'bg-primary text-white'}`}>
             {rank}
           </div>
         </div>
-        <h3 className="text-xl font-headline font-bold text-primary mb-1 truncate max-w-full px-2">{user.username || 'Anonymous Fan'}</h3>
-        <p className="text-xs font-medium text-muted-foreground mb-4">{user.email ? 'PRO PREDICTOR' : 'GUEST'}</p>
+        <h3 className="text-xl font-headline font-bold text-primary mb-1 truncate max-w-full px-2">
+          {user.username || 'Anonymous Fan'}
+        </h3>
+        <p className="text-xs font-medium text-muted-foreground mb-4">
+          {isUniversalGuest ? 'COMMUNITY GUEST' : (user.email ? 'PRO PREDICTOR' : 'GUEST')}
+        </p>
         <div className="grid grid-cols-2 gap-4 w-full bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-primary/5">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Points</span>

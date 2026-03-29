@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, UserCircle, BookOpen } from "lucide-react";
+import { Trophy, Home, List, Award, Settings, LogOut, Search, Bell, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +24,6 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
     { icon: List, label: "Predictions", href: "/dashboard/predictions" },
     { icon: Award, label: "Leaderboard", href: "/dashboard/leaderboard" },
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-    { icon: BookOpen, label: "User Guide", href: "/guide" },
   ];
 
   const closeMobile = () => {
@@ -32,9 +32,11 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
     }
   };
 
-  const displayName = profile?.username || user?.email?.split("@")[0] || (user?.isAnonymous ? "The Universal Guest" : "User");
-  const displayBadge = user?.isAnonymous ? "Shared Guest Mode" : "Pro Predictor";
-  const avatarUrl = profile?.avatarUrl || `https://picsum.photos/seed/${effectiveUserId}/100/100`;
+  const isGuest = user?.isAnonymous;
+  const displayName = isGuest ? "Universal Guest" : (profile?.username || user?.email?.split("@")[0] || "User");
+  const avatarUrl = isGuest 
+    ? "https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg"
+    : (profile?.avatarUrl || `https://picsum.photos/seed/${effectiveUserId}/100/100`);
 
   return (
     <Sidebar className="border-r border-primary/5">
@@ -81,16 +83,16 @@ function DashboardSidebar({ profile, effectiveUserId, user, handleLogout }: any)
         <div className="bg-primary/5 rounded-2xl p-4 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border-2 border-primary/10">
-              <AvatarImage src={avatarUrl} />
+              <AvatarImage src={avatarUrl} className={isGuest ? "object-contain p-1" : ""} />
               <AvatarFallback className="bg-primary/10 text-primary">
-                {user?.isAnonymous ? <UserCircle className="h-6 w-6" /> : (displayName?.[0] || "U")}
+                {isGuest ? <Users className="h-5 w-5" /> : (displayName?.[0] || "U")}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-bold text-primary truncate">
                 {displayName}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{displayBadge}</span>
+              {isGuest && <span className="text-[10px] text-muted-foreground font-medium">Community Account</span>}
             </div>
           </div>
           <Separator className="bg-primary/10" />
@@ -127,12 +129,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, isUserLoading, router]);
 
-  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
+  const effectiveUserId = user?.uid;
+  const effectiveProfileId = user?.isAnonymous ? "universal_guest" : effectiveUserId;
 
   const userDocRef = useMemoFirebase(() => {
-    if (!db || !effectiveUserId) return null;
-    return doc(db, "users", effectiveUserId);
-  }, [db, effectiveUserId]);
+    if (!db || !effectiveProfileId) return null;
+    return doc(db, "users", effectiveProfileId);
+  }, [db, effectiveProfileId]);
 
   const { data: profile, isLoading: isLoadingProfile } = useDoc(userDocRef);
 
@@ -154,7 +157,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const { data: predictions, isLoading: isPredictionsLoading } = useCollection(predictionsQuery);
 
-  // Community Sync & Accuracy Calculation Logic
   useEffect(() => {
     if (profile && userDocRef && predictions && matches.length > 0 && !isPredictionsLoading && !isSeriesLoading) {
       let calculatedPoints = 0;
@@ -179,10 +181,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? Math.round((correctWinsCount / completedCount) * 100) 
         : 0;
 
+      // For universal_guest, we only update if our local calculation is higher or different
+      // This is a simplified "Community Sync"
       const needsUpdate = (profile.totalPoints ?? -1) !== calculatedPoints || 
                           (profile.accuracy ?? -1) !== calculatedAccuracy;
 
-      if (needsUpdate) {
+      if (needsUpdate && userDocRef) {
         updateDocumentNonBlocking(userDocRef, {
           totalPoints: calculatedPoints,
           accuracy: calculatedAccuracy,
@@ -191,29 +195,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, userDocRef, predictions, matches, isPredictionsLoading, isSeriesLoading]);
 
-  // Refined Initialization: Wait for definitive missing status before setup
   useEffect(() => {
-    if (user && !isUserLoading && !isLoadingProfile && initializedUserId.current !== effectiveUserId && userDocRef) {
+    if (user && !isUserLoading && !isLoadingProfile && initializedUserId.current !== effectiveProfileId && userDocRef) {
       async function ensureProfile() {
-        // Direct fetch to confirm absence before writing defaults
         const snap = await getDoc(userDocRef);
         if (!snap.exists()) {
+          const isGuest = user.isAnonymous;
           setDocumentNonBlocking(userDocRef, {
-            id: effectiveUserId,
-            username: user.isAnonymous 
-              ? `The Universal Guest` 
-              : (user.email?.split("@")[0] || "User"),
+            id: effectiveProfileId,
+            username: isGuest ? "Universal Guest" : (user.email?.split("@")[0] || "User"),
             email: user.email || null,
             totalPoints: 0,
             accuracy: 0,
-            isSharedGuest: user.isAnonymous,
+            avatarUrl: isGuest ? "https://upload.wikimedia.org/wikipedia/commons/4/46/Blockbuster_logo.svg" : null
           }, { merge: true });
         }
-        initializedUserId.current = effectiveUserId;
+        initializedUserId.current = effectiveProfileId;
       }
       ensureProfile();
     }
-  }, [user, isUserLoading, isLoadingProfile, userDocRef, effectiveUserId]);
+  }, [user, isUserLoading, isLoadingProfile, userDocRef, effectiveProfileId]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -223,10 +224,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Trophy className="h-12 w-12 text-primary animate-bounce" />
-          <p className="text-sm font-medium text-muted-foreground">Entering the Blockbuster...</p>
-        </div>
+        <Trophy className="h-12 w-12 text-primary animate-bounce" />
       </div>
     );
   }
@@ -240,7 +238,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           user={user} 
           handleLogout={handleLogout} 
         />
-
         <SidebarInset className="flex flex-col">
           <header className="h-16 border-b bg-white/50 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
@@ -249,21 +246,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
-                  placeholder="Search series or teams..." 
-                  className="bg-muted/50 border-none rounded-full pl-10 pr-4 h-9 text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  placeholder="Search..." 
+                  className="bg-muted/50 border-none rounded-full pl-10 pr-4 h-9 text-sm w-64 outline-none"
                 />
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="rounded-full relative">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className="absolute top-2 right-2 h-2 w-2 bg-accent rounded-full border-2 border-white"></span>
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full" asChild>
-                <Link href="/dashboard/settings">
-                  <Settings className="h-5 w-5 text-muted-foreground" />
-                </Link>
-              </Button>
             </div>
           </header>
           <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">

@@ -42,7 +42,7 @@ export interface SeriesInfoResponse {
 
 const CRICAPI_KEY = '6cbb4198-8e11-46e3-8dd5-f353458e68c1';
 const SERIES_ID = '87c62aac-bc3c-4738-ab93-19da0690488f';
-const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes (Optimized for more real-time updates)
+const CACHE_DURATION_MS = 60 * 60 * 1000; // Restored to 1 hour
 
 export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse | null> {
   const cacheRef = doc(db, 'cricketSeries', SERIES_ID);
@@ -57,7 +57,6 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
       const lastUpdated = (cachedData.lastUpdated as Timestamp).toDate();
       const now = new Date();
 
-      // If cache is fresh (less than 30 mins old), return it
       if (now.getTime() - lastUpdated.getTime() < CACHE_DURATION_MS) {
         resultData = cachedData.rawResponse as SeriesInfoResponse;
       }
@@ -90,30 +89,6 @@ export async function fetchSeriesInfo(db: Firestore): Promise<SeriesInfoResponse
       }
     }
 
-    // Apply Global Transformations and Overrides
-    if (resultData && resultData.data && resultData.data.matchList) {
-      resultData.data.matchList = resultData.data.matchList.map(m => {
-        // Fix Team Shortnames (e.g., RCBW -> RCB)
-        if (m.teamInfo) {
-          m.teamInfo = m.teamInfo.map(t => ({
-            ...t,
-            shortname: t.shortname === "RCBW" ? "RCB" : t.shortname
-          }));
-        }
-
-        // Specifically target the Final match (and exclude semi-finals)
-        if (m.name.toLowerCase().includes("final") && !m.name.toLowerCase().includes("semi")) {
-          return {
-            ...m,
-            status: "India won by 96 runs",
-            matchEnded: true,
-            matchStarted: true
-          };
-        }
-        return m;
-      });
-    }
-
     return resultData;
 
   } catch (error) {
@@ -128,9 +103,6 @@ export async function fetchMatchDetails(db: Firestore, matchId: string): Promise
   return series.data.matchList.find(m => m.id === matchId) || null;
 }
 
-/**
- * Parses the winner from the match status string provided by the API.
- */
 export function getWinnerFromStatus(status: string, teamNames: string[]): string | null {
   const s = status.toLowerCase();
   
@@ -148,15 +120,8 @@ export function getWinnerFromStatus(status: string, teamNames: string[]): string
 }
 
 /**
- * Centralized point logic: Award 3 points for high-value matches (Eliminator, Qualifier, Final)
+ * Restored point logic: Standard 2 points for all matches.
  */
 export function getMatchPointValue(matchName: string): number {
-  if (!matchName) return 2;
-  const name = matchName.toLowerCase();
-  
-  const isHighValue = name.includes("eliminator") || 
-                      name.includes("qualifier") || 
-                      name.includes("final");
-                      
-  return isHighValue ? 3 : 2;
+  return 2;
 }

@@ -7,6 +7,9 @@ Predict cricket match results and climb the global leaderboard using AI-powered 
 
 1.  **Local Development**: Run `npm run dev` to start the development server at `http://localhost:9002`.
 2.  **Configuration**: Ensure your Firebase project is set up and the `src/firebase/config.ts` matches your project settings.
+3.  **AI Setup**: 
+    - Obtain an API key from [Google AI Studio](https://aistudio.google.com/).
+    - Create a `.env` file in the root directory and add: `GEMINI_API_KEY=your_key_here`.
 
 ## Deployment
 
@@ -16,8 +19,8 @@ The easiest way to publish this app is using **Firebase App Hosting**, which is 
 1.  Push your code to a GitHub repository.
 2.  Go to the [Firebase Console](https://console.firebase.google.com/) and navigate to **App Hosting**.
 3.  Click **Get Started** and connect your GitHub repository.
-4.  Firebase will automatically detect the Next.js framework and handle the build and deployment process.
-5.  **Environment Variables**: Add your `GEMINI_API_KEY` in the Firebase Console under the App Hosting backend settings to enable AI features.
+4.  **Environment Variables**: After the backend is created, go to the **Environment Variables** tab in the Firebase Console and add your `GEMINI_API_KEY`.
+5.  Firebase will automatically handle the build and deployment process.
 
 ### Option 2: Firebase CLI
 If you prefer using the terminal:
@@ -29,21 +32,14 @@ If you prefer using the terminal:
 ## CRITICAL: Authorized Domains
 If you experience a "domain name error" when signing in:
 1.  Go to **Firebase Console > Authentication > Settings > Authorized Domains**.
-2.  Add your public URL (e.g., `your-app-id.web.app` or your custom domain).
+2.  Add your public URL (e.g., `your-app-id.web.app` or your custom domain `blockbuster.work`).
 3.  Also ensure `localhost` is added for local development.
-
-## Finding Your Public URL
-Once your deployment is successful:
-1.  Go to the **App Hosting** section of your Firebase Console.
-2.  Select your backend.
-3.  You will see a **Domain** or **URL** listed (e.g., `your-app-id.web.app`). This is your public link!
-4.  You can also connect a custom domain in the **Settings** tab of your App Hosting backend.
 
 ## Core Features
 - **AI Predictions**: Leveraging Google Gemini via Genkit to provide probability-based match forecasts.
 - **Universal Guest Account**: A shared community profile allowing anonymous users to compete collectively.
 - **Pro Profiles**: Secure, passwordless email login for users to maintain their own unique ranking.
-- **Real-time Leaderboard**: Dynamic rankings based on prediction accuracy and total points earned (2 points per correct prediction).
+- **Real-time Leaderboard**: Dynamic rankings based on prediction accuracy and total points earned (2 points per correct prediction, 3 for high-value games).
 - **Match Cutoffs**: Automated system that locks predictions 1 hour before match start times.
 
 ## Tech Stack

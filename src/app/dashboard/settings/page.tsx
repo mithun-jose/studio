@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { UserCircle, ShieldAlert, CheckCircle2, Loader2, Camera, Mail, User } from "lucide-react";
+import { UserCircle, CheckCircle2, Loader2, Camera, Mail, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function SettingsPage() {
@@ -16,8 +17,7 @@ export default function SettingsPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
-  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
-  const isAnonymous = user?.isAnonymous;
+  const effectiveUserId = user?.uid;
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !effectiveUserId) return null;
@@ -45,15 +45,6 @@ export default function SettingsPage() {
   }, [profile, isSaving]);
 
   const handleSave = () => {
-    if (isAnonymous) {
-      toast({
-        title: "Action Restricted",
-        description: "Anonymous users cannot modify the Universal Guest profile settings.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!userDocRef) return;
 
     setIsSaving(true);
@@ -90,13 +81,6 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Manage your public presence and account information</p>
       </div>
 
-      {isAnonymous && (
-        <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium text-destructive shadow-sm">
-          <ShieldAlert className="h-5 w-5 shrink-0" />
-          <p>You are using the <span className="font-bold">Universal Guest</span> account. Settings are locked for non-registered users.</p>
-        </div>
-      )}
-
       <div className="grid gap-8">
         <Card className="border-primary/5 shadow-xl">
           <CardHeader>
@@ -123,7 +107,7 @@ export default function SettingsPage() {
                   placeholder="https://example.com/photo.jpg"
                   value={formData.avatarUrl}
                   onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                  disabled={isAnonymous || isSaving}
+                  disabled={isSaving}
                   className="bg-muted/30 border-none h-11"
                 />
               </div>
@@ -139,7 +123,7 @@ export default function SettingsPage() {
                   placeholder="Predictor Name"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  disabled={isAnonymous || isSaving}
+                  disabled={isSaving}
                   className="bg-muted/30 border-none h-11 font-medium"
                 />
               </div>
@@ -153,7 +137,7 @@ export default function SettingsPage() {
                   placeholder="email@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={isAnonymous || isSaving}
+                  disabled={isSaving}
                   className="bg-muted/30 border-none h-11 font-medium"
                 />
               </div>
@@ -161,11 +145,11 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="bg-primary/5 border-t border-primary/5 py-4 flex justify-between items-center">
             <p className="text-xs text-muted-foreground italic">
-              {isAnonymous ? "Sign in with email to customize" : "Settings persist across all your sessions"}
+              Settings persist across all your sessions
             </p>
             <Button 
               onClick={handleSave} 
-              disabled={isAnonymous || isSaving}
+              disabled={isSaving}
               className="rounded-xl px-8 font-bold shadow-lg shadow-primary/10"
             >
               {isSaving ? (

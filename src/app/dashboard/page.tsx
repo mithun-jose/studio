@@ -26,7 +26,7 @@ export default function Dashboard() {
   const db = useFirestore();
   const { user } = useUser();
 
-  const effectiveUserId = user?.isAnonymous ? "universal-guest" : user?.uid;
+  const effectiveUserId = user?.uid;
 
   const predictionsQuery = useMemoFirebase(() => {
     if (!db || !effectiveUserId) return null;
@@ -111,8 +111,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Rules Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm">
           <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
@@ -129,15 +128,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <p className="text-xs text-muted-foreground">Get 2 points for group games, or <strong>3 points</strong> for Eliminators, Qualifiers & Final!</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-primary/5 border-primary/10 shadow-sm">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2">
-            <Users className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-bold">Guest Mode</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <p className="text-xs text-muted-foreground">Anonymous users contribute to the "Universal Guest" rank. Sign in with email for a pro profile.</p>
           </CardContent>
         </Card>
       </div>

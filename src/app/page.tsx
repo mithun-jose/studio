@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,16 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle, AlertTriangle, BookOpen } from "lucide-react";
+import { Trophy, Target, ShieldCheck, Zap, ArrowRight, Mail, Loader2, CheckCircle2, UserCircle, BookOpen, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser, useFirestore } from "@/firebase";
+import { useAuth, useUser, useFirestore, initiateAnonymousSignIn } from "@/firebase";
 import { 
   sendSignInLinkToEmail, 
   isSignInWithEmailLink, 
-  signInWithEmailLink,
-  signInAnonymously
+  signInWithEmailLink
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -105,55 +105,19 @@ export default function LandingPage() {
       });
     } catch (error: any) {
       console.error("Email Link Error:", error);
-      
-      if (error.code === 'auth/unauthorized-continue-uri') {
-        toast({
-          title: "Domain Error",
-          description: "This domain is not authorized in the Firebase Console. Please add " + continueUrl + " to your Authorized Domains.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Request Failed",
-          description: error.message || "Could not send login link.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Request Failed",
+        description: error.message || "Could not send login link.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGuestSignIn = async () => {
+  const handleGuestSignIn = () => {
     setIsGuestLoading(true);
-    try {
-      await signInAnonymously(auth);
-      
-      const universalGuestRef = doc(db, "users", "universal-guest");
-      const guestSnap = await getDoc(universalGuestRef);
-      if (!guestSnap.exists()) {
-        setDocumentNonBlocking(universalGuestRef, {
-          id: "universal-guest",
-          username: "The Universal Guest",
-          totalPoints: 0,
-          accuracy: 0,
-          isSharedGuest: true,
-        }, { merge: true });
-      }
-
-      toast({
-        title: "Welcome to the Blockbuster!",
-        description: "You're now predicting as part of the Universal Guest community.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Guest Entry Failed",
-        description: error.message || "Could not sign in anonymously.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGuestLoading(false);
-    }
+    initiateAnonymousSignIn(auth);
   };
 
   if (isUserLoading || finishingSignIn) {
@@ -218,7 +182,7 @@ export default function LandingPage() {
                     <span className="text-primary">Conquer the League.</span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-2xl leading-relaxed">
-                    Elevate your cricket experience with Cricket Blockbuster. Use passwordless, secure email login or join the shared guest community to climb the leaderboard.
+                    Elevate your cricket experience with Cricket Blockbuster. Predict matches, track your accuracy, and climb the global leaderboard.
                   </p>
                 </div>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
@@ -227,11 +191,9 @@ export default function LandingPage() {
                       Start Predicting Now <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </Link>
-                  <Link href="/guide">
-                    <Button variant="outline" size="lg" className="px-8 text-lg font-semibold bg-white/50 w-full sm:w-auto">
-                      How it Works
-                    </Button>
-                  </Link>
+                  <Button variant="outline" size="lg" className="px-8 text-lg font-semibold bg-white/50 w-full sm:w-auto" onClick={handleGuestSignIn} disabled={isGuestLoading}>
+                    {isGuestLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Try as Guest"}
+                  </Button>
                 </div>
               </div>
 
@@ -239,12 +201,12 @@ export default function LandingPage() {
                 <Card className="shadow-2xl border-primary/10 overflow-hidden bg-white/80 backdrop-blur-sm">
                   <CardHeader className="text-center pt-8">
                     <CardTitle className="text-2xl font-headline font-bold">
-                      {linkSent ? "Check Your Inbox" : "Join the Blockbuster"}
+                      {linkSent ? "Check Your Inbox" : "Secure Pro Access"}
                     </CardTitle>
                     <CardDescription>
                       {linkSent 
                         ? "We've sent a magic login link to your email." 
-                        : "Sign in with a secure link or explore as a guest."}
+                        : "Sign in with email to save your rank permanently."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 pb-8">
@@ -261,43 +223,31 @@ export default function LandingPage() {
                               className="h-12 border-primary/20"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              disabled={isLoading || isGuestLoading}
+                              disabled={isLoading}
                             />
                           </div>
-                          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading || isGuestLoading}>
+                          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
                             {isLoading ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
                               </>
                             ) : (
                               <>
-                                <Mail className="mr-2 h-4 w-4" /> Get Login Link
+                                <Mail className="mr-2 h-4 w-4" /> Get Magic Link
                               </>
                             )}
                           </Button>
                         </form>
-                        
                         <div className="relative">
                           <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t" />
                           </div>
                           <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground font-semibold">Or</span>
+                            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
                           </div>
                         </div>
-
-                        <Button 
-                          variant="outline" 
-                          className="w-full h-12 border-primary/20 hover:bg-primary/5 font-bold" 
-                          onClick={handleGuestSignIn}
-                          disabled={isLoading || isGuestLoading}
-                        >
-                          {isGuestLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <UserCircle className="mr-2 h-5 w-5" />
-                          )}
-                          Continue as Universal Guest
+                        <Button variant="outline" className="w-full h-11" onClick={handleGuestSignIn} disabled={isGuestLoading}>
+                          <User className="mr-2 h-4 w-4" /> Quick Guest Access
                         </Button>
                       </div>
                     ) : (
@@ -308,7 +258,7 @@ export default function LandingPage() {
                         <div className="space-y-2">
                           <p className="font-bold text-lg">Verification Link Sent</p>
                           <p className="text-sm text-muted-foreground">
-                            Click the link in the email we just sent to <span className="font-medium text-primary">{email}</span> to finish signing in.
+                            Click the link in your email to finish signing in.
                           </p>
                         </div>
                         <Button variant="ghost" className="text-xs text-muted-foreground underline" onClick={() => setLinkSent(false)}>
@@ -316,14 +266,6 @@ export default function LandingPage() {
                         </Button>
                       </div>
                     )}
-                    <div className="relative mt-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Secure Auth</span>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -348,14 +290,6 @@ export default function LandingPage() {
           <p className="text-sm text-muted-foreground">
             © 2024 Cricket Blockbuster Inc. All rights reserved. Data powered by CricAPI.
           </p>
-          <div className="flex gap-4">
-            <Link className="text-sm font-medium hover:text-primary underline-offset-4 hover:underline" href="#">
-              Terms
-            </Link>
-            <Link className="text-sm font-medium hover:text-primary underline-offset-4 hover:underline" href="#">
-              Privacy
-            </Link>
-          </div>
         </div>
       </footer>
     </div>
