@@ -19,24 +19,20 @@ service cloud.firestore {
       return resource != null && isOwner(userId);
     }
 
-    // Special case for the shared guest account
-    function isUniversalGuest(userId) {
-      return userId == 'universal-guest' && isSignedIn();
-    }
-
     match /users/{userId} {
       // Allow public read access for the leaderboard and profile viewing
       allow read: if true;
       
-      // Only the user can manage their own profile, OR any signed-in user can manage the universal guest
-      allow create: if isOwner(userId) || isUniversalGuest(userId);
+      // Only the user can manage their own profile, 
+      // EXCEPT for the shared 'universal_guest' account which is community-owned.
+      allow create: if isOwner(userId) || (userId == 'universal_guest' && isSignedIn());
       
       // Update logic: 
       // 1. Owner can update everything
-      // 2. Anyone signed in can update the universal guest
-      // 3. Anyone signed in can update ANY user's 'totalPoints' or 'accuracy' to keep the leaderboard accurate (Community Sync)
+      // 2. Shared 'universal_guest' can be updated by any signed-in user (Community Sync)
+      // 3. Anyone signed in can update ANY user's 'totalPoints' or 'accuracy' for leaderboard accuracy
       allow update: if isExistingOwner(userId) 
-                    || isUniversalGuest(userId)
+                    || (userId == 'universal_guest' && isSignedIn())
                     || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPoints', 'accuracy']));
       
       allow delete: if isExistingOwner(userId);
@@ -45,8 +41,8 @@ service cloud.firestore {
         allow read: if true;
         allow list: if true;
         
-        allow create: if (isOwner(userId) && request.resource.data.userId == userId) || isUniversalGuest(userId);
-        allow update: if isExistingOwner(userId) || isUniversalGuest(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId);
         allow delete: if isExistingOwner(userId);
       }
     }
